@@ -32,16 +32,20 @@ class UnitProdukResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('nama_unit')
+                    ->label('Nama Unit')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('harga_modal')
+                    ->label('Harga Modal')
                     ->required()
                     ->numeric(),
                 Forms\Components\TextInput::make('stok_awal')
+                    ->label('Stok Awal')
                     ->required()
                     ->numeric()
                     ->default(0),
                 // Forms\Components\Textarea::make('notes')
+                //     ->label('Catatan')
                 //     ->columnSpanFull(),
             ]);
     }
@@ -52,23 +56,39 @@ class UnitProdukResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('sku')
                     ->label('SKU')
+                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('nama_unit')
+                    ->label('Nama Unit')
+                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('harga_modal')
+                    ->label('Harga Modal')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('stok_awal')
+                    ->label('Stok Awal')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('stok_akhir'),
-                Tables\Columns\TextColumn::make('stok_masuk'),
-                Tables\Columns\TextColumn::make('stok_keluar'),
+                Tables\Columns\TextColumn::make('stok_akhir')
+                    ->label('Stok Akhir')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('stok_masuk')
+                    ->label('Stok Masuk')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('stok_keluar')
+                    ->label('Stok Keluar')
+                    ->numeric()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Dibuat')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Diubah')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
