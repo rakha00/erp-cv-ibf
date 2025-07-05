@@ -15,8 +15,9 @@ return new class extends Migration {
             $table->string('nama');
             $table->string('sales');
             $table->string('no_hp');
-            $table->text('notes')->nullable();
+            $table->text('remarks')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

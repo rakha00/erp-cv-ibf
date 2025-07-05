@@ -43,8 +43,8 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->label('Jumlah Barang Masuk')
                     ->numeric()
                     ->required(),
-                Forms\Components\Textarea::make('notes')
-                    ->label('Catatan')
+                Forms\Components\Textarea::make('remarks')
+                    ->label('Remarks')
                     ->columnSpanFull(),
             ]);
     }
@@ -63,8 +63,8 @@ class BarangMasukDetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')
                     ->label('Jumlah')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('notes')
-                    ->label('Catatan')
+                Tables\Columns\TextColumn::make('remarks')
+                    ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
 
             ])

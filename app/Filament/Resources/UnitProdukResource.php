@@ -48,8 +48,8 @@ class UnitProdukResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(0),
-                // Forms\Components\Textarea::make('notes')
-                //     ->label('Catatan')
+                // Forms\Components\Textarea::make('remarks')
+                //     ->label('Remarks')
                 //     ->columnSpanFull(),
             ]);
     }
@@ -96,8 +96,8 @@ class UnitProdukResource extends Resource
                     ->label('Stok Keluar')
                     ->numeric()
                     ->sortable(),
-                // Tables\Columns\TextColumn::make('notes')
-                // ->label('Catatan')
+                // Tables\Columns\TextColumn::make('remarks')
+                // ->label('Remarks')
                 // ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')

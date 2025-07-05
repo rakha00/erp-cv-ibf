@@ -43,8 +43,8 @@ class PrincipleSubdealerResource extends Resource
                     ->label('No HP')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('notes')
-                    ->label('Catatan')
+                Forms\Components\Textarea::make('remarks')
+                    ->label('Remarks')
                     ->columnSpanFull(),
             ]);
     }
@@ -64,8 +64,8 @@ class PrincipleSubdealerResource extends Resource
                 Tables\Columns\TextColumn::make('no_hp')
                     ->label('No HP')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('notes')
-                    ->label('Catatan')
+                Tables\Columns\TextColumn::make('remarks')
+                    ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')

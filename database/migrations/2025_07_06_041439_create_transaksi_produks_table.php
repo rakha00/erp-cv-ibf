@@ -10,10 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('barang_masuks', function (Blueprint $table) {
+        Schema::create('transaksi_produks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('principle_subdealer_id')->constrained()->onDelete('restrict');
-            $table->string('nomor_barang_masuk');
+            $table->string('no_invoice')->unique();
+            $table->string('no_surat_jalan')->nullable();
             $table->date('tanggal');
             $table->text('remarks')->nullable();
             $table->timestamps();
@@ -26,6 +26,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('barang_masuks');
+        Schema::dropIfExists('transaksi_produks');
     }
 };

@@ -57,6 +57,9 @@ class BarangMasukResource extends Resource
                     ->reactive()
                     ->readOnly()
                     ->maxLength(50),
+                // Forms\Components\Textarea::make('remarks')
+                //     ->label('Remarks')
+                //     ->columnSpanFull(),
             ]);
     }
 
@@ -75,6 +78,9 @@ class BarangMasukResource extends Resource
                     ->label('Tanggal')
                     ->date()
                     ->sortable(),
+                // Tables\Columns\TextColumn::make('remarks')
+                //     ->label('Remarks')
+                //     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime()

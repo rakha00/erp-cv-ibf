@@ -16,8 +16,9 @@ return new class extends Migration {
             $table->string('nama_unit');
             $table->decimal('harga_modal', 20, 2);
             $table->integer('stok_awal')->default(0);
-            $table->text('notes')->nullable();
+            $table->text('remarks')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

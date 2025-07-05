@@ -10,14 +10,15 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('barang_masuk_details', function (Blueprint $table) {
+        Schema::create('transaksi_produk_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('barang_masuk_id')->constrained()->onDelete('restrict');
+            $table->foreignId('transaksi_produk_id')->constrained()->onDelete('restrict');
             $table->foreignId('unit_produk_id')->constrained()->onDelete('restrict');
             $table->string('sku');
             $table->string('nama_unit');
-            $table->decimal('harga_modal', 20, 2);
-            $table->integer('jumlah_barang_masuk');
+            $table->decimal('total_modal', 20, 2)->default(0);
+            $table->decimal('total_harga_jual', 20, 2)->default(0);
+            $table->decimal('keuntungan', 20, 2)->default(0);
             $table->text('remarks')->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -29,6 +30,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('barang_masuk_details');
+        Schema::dropIfExists('transaksi_produk_details');
     }
 };
