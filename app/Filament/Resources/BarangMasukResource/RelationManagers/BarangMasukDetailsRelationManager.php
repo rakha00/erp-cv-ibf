@@ -63,6 +63,10 @@ class BarangMasukDetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')
                     ->label('Jumlah')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('notes')
+                    ->label('Catatan')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
             ])
             ->filters([
                 //

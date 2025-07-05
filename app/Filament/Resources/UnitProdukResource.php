@@ -77,11 +77,21 @@ class UnitProdukResource extends Resource
                 Tables\Columns\TextColumn::make('stok_akhir')
                     ->label('Stok Akhir')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(
+                        fn(UnitProduk $record): int =>
+                        $record->stok_awal
+                        + $record->barangMasukDetails()->sum('jumlah_barang_masuk')
+                        // - $record->transaksiProdukDetails()->sum('jumlah_keluar')
+                    ),
                 Tables\Columns\TextColumn::make('stok_masuk')
                     ->label('Stok Masuk')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(
+                        fn(UnitProduk $record): int =>
+                        $record->barangMasukDetails()->sum('jumlah_barang_masuk')
+                    ),
                 Tables\Columns\TextColumn::make('stok_keluar')
                     ->label('Stok Keluar')
                     ->numeric()

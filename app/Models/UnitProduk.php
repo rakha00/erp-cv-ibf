@@ -15,4 +15,9 @@ class UnitProduk extends Model
         'stok_awal',
         'notes',
     ];
+
+    public function barangMasukDetails()
+    {
+        return $this->hasMany(BarangMasukDetail::class);
+    }
 }
