@@ -86,6 +86,9 @@ class UnitProdukResource extends Resource
                     ->label('Stok Keluar')
                     ->numeric()
                     ->sortable(),
+                // Tables\Columns\TextColumn::make('notes')
+                // ->label('Catatan')
+                // ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime()

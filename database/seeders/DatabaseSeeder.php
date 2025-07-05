@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
-        $this->call(UnitProdukSeeder::class);
+        $this->call([
+            UnitProdukSeeder::class,
+            PrincipleSubdealerSeeder::class,
+        ]);
     }
 }
