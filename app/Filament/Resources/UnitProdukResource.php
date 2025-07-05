@@ -23,6 +23,10 @@ class UnitProdukResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Unit Produk';
 
+    protected static ?string $navigationGroup = 'Manajemen Produk';
+
+    protected static ?int $navigationSort = 1;
+
     public static function form(Form $form): Form
     {
         return $form
