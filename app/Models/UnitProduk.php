@@ -16,7 +16,7 @@ class UnitProduk extends Model
         'nama_unit',
         'harga_modal',
         'stok_awal',
-        'notes',
+        'remarks',
     ];
 
     public function barangMasukDetails()

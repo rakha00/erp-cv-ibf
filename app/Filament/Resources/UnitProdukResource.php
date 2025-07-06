@@ -41,17 +41,16 @@ class UnitProdukResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('harga_modal')
-                    ->label('Harga Modal')
+                    ->label('Harga Modal/Unit')
                     ->required()
+                    ->prefix('Rp')
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
-                    ->numeric()
-                    ->prefix('Rp'),
+                    ->numeric(),
                 Forms\Components\TextInput::make('stok_awal')
                     ->label('Stok Awal')
                     ->required()
-                    ->numeric()
-                    ->default(0),
+                    ->numeric(),
                 Forms\Components\Textarea::make('remarks')
                     ->label('Remarks')
                     ->columnSpanFull(),
@@ -71,9 +70,9 @@ class UnitProdukResource extends Resource
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('harga_modal')
-                    ->label('Harga Modal')
-                    ->numeric()
+                    ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
+                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('stok_awal')
                     ->label('Stok Awal')
