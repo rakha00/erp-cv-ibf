@@ -84,18 +84,24 @@ class TransaksiProdukResource extends Resource
                 Tables\Columns\TextColumn::make('total_harga_jual')
                     ->label('Total Harga Jual')
                     ->getStateUsing(
-                        fn(TransaksiProduk $record): int =>
-                        $record->transaksiProdukDetails()
-                            ->selectRaw('SUM(harga_jual * jumlah_keluar) as total')
-                            ->value('total') ?? 0
+                        fn(TransaksiProduk $record): string =>
+                        'Rp ' . number_format(
+                            $record->transaksiProdukDetails()
+                                ->selectRaw('SUM(harga_jual * jumlah_keluar) as total')
+                                ->value('total') ?? 0,
+                            0,
+                            ',',
+                            '.'
+                        )
                     ),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
                     ->getStateUsing(
-                        fn(TransaksiProduk $record): int =>
+                        fn(TransaksiProduk $record): string =>
+                        'Rp ' .
                         $record->transaksiProdukDetails()
                             ->selectRaw('SUM((harga_jual - harga_modal) * jumlah_keluar) as total')
-                            ->value('total') ?? 0
+                            ->value('total') ?? 0,
                     ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')

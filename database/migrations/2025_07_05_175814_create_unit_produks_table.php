@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('sku')->unique();
             $table->string('nama_unit');
-            $table->decimal('harga_modal', 20, 2);
+            $table->decimal('harga_modal', 20, 0);
             $table->integer('stok_awal')->default(0);
             $table->text('remarks')->nullable();
             $table->timestamps();

@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -94,12 +95,15 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->numeric(),
                 Tables\Columns\TextColumn::make('harga_modal')
                     ->label('Harga Modal')
+                    ->prefix('Rp ')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('harga_jual')
                     ->label('Harga Jual')
+                    ->prefix('Rp ')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('total_modal')
                     ->label('Total Harga Modal')
+                    ->prefix('Rp ')
                     ->numeric()
                     ->getStateUsing(
                         fn($record) =>
@@ -107,6 +111,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ),
                 Tables\Columns\TextColumn::make('total_harga_jual')
                     ->label('Total Harga Jual')
+                    ->prefix('Rp ')
                     ->numeric()
                     ->getStateUsing(
                         fn($record) =>
@@ -114,6 +119,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ),
                 Tables\Columns\TextColumn::make('keuntungan')
                     ->label('Keuntungan')
+                    ->prefix('Rp ')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')

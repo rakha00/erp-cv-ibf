@@ -8,6 +8,7 @@ use App\Models\UnitProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,7 +43,10 @@ class UnitProdukResource extends Resource
                 Forms\Components\TextInput::make('harga_modal')
                     ->label('Harga Modal')
                     ->required()
-                    ->numeric(),
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
+                    ->numeric()
+                    ->prefix('Rp'),
                 Forms\Components\TextInput::make('stok_awal')
                     ->label('Stok Awal')
                     ->required()
@@ -69,6 +73,7 @@ class UnitProdukResource extends Resource
                 Tables\Columns\TextColumn::make('harga_modal')
                     ->label('Harga Modal')
                     ->numeric()
+                    ->prefix('Rp ')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('stok_awal')
                     ->label('Stok Awal')
