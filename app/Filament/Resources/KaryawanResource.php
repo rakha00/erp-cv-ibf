@@ -159,6 +159,14 @@ class KaryawanResource extends Resource
                     ->query(fn (Builder $query, array $data) => $query),
             ])
             ->actions([
+                Tables\Actions\Action::make('downloadSlipGaji')
+                    ->label('Slip Gaji')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn (Karyawan $record, $livewire) => route('karyawan.slip-gaji', [
+                        'karyawan' => $record,
+                        'tahun' => $livewire->tableFilters['tahun']['value'],
+                        'bulan' => $livewire->tableFilters['bulan']['value'],
+                    ])),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
