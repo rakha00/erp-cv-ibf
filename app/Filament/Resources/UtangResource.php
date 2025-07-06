@@ -1,0 +1,238 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\UtangResource\Pages;
+use App\Filament\Resources\UtangResource\RelationManagers;
+use App\Models\BarangMasuk;
+use App\Models\Utang;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+class UtangResource extends Resource
+{
+    protected static ?string $model = Utang::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+    protected static ?string $navigationGroup = 'Reminder';
+
+    protected static ?string $navigationLabel = 'Utang';
+
+    protected static ?string $pluralModelLabel = 'Utang';
+
+    protected static ?int $navigationSort = 1;
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Select::make('barang_masuk_id')
+                    ->label('Barang Masuk')
+                    ->options(self::getBarangMasukOptions())
+                    ->searchable()
+                    ->reactive()
+                    ->required()
+                    ->afterStateUpdated(fn(Set $set, $state) => self::updateBarangMasukDetails($set, $state)),
+
+                Forms\Components\TextInput::make('total_harga_modal')
+                    ->label('Total Harga Modal')
+                    ->required()
+                    ->stripCharacters(',')
+                    ->prefix('Rp ')
+                    ->readOnly(),
+
+                Forms\Components\TextInput::make('nama_principle')
+                    ->label('Nama Principle')
+                    ->readOnly()
+                    ->dehydrated(false)
+                    ->formatStateUsing(fn($state, $record) => $record?->barangMasuk?->principleSubdealer?->nama ?? '-'),
+                Forms\Components\DatePicker::make('jatuh_tempo')
+                    ->label('Jatuh Tempo')
+                    ->required(),
+                Forms\Components\TextInput::make('sudah_dibayar')
+                    ->label('Sudah Dibayar')
+                    ->readOnly()
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->stripCharacters(',')
+                    ->formatStateUsing(fn($state, $record) => $record?->sudah_dibayar ?? 0),
+
+                Forms\Components\TextInput::make('pembayaran_baru')
+                    ->label('Pembayaran Baru')
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->default(0)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (Set $set, Get $get, $state, $record = null) {
+                        $sudahDibayarLama = $record?->sudah_dibayar ?? 0;
+                        $pembayaranBaru = (float) ($state ?? 0);
+                        $totalBaru = $sudahDibayarLama + $pembayaranBaru;
+                        $set('sudah_dibayar', $totalBaru);
+                    }),
+
+                Forms\Components\FileUpload::make('foto')
+                    ->label('Foto Bukti')
+                    ->multiple()
+                    ->preserveFilenames()
+                    ->reorderable()
+                    ->directory('utang-foto')
+                    ->openable()
+                    ->downloadable(),
+
+                Forms\Components\Select::make('status_pembayaran')
+                    ->options([
+                        'belum lunas' => 'Belum Lunas',
+                        'tercicil' => 'Tercicil',
+                        'sudah lunas' => 'Sudah Lunas',
+                    ])
+                    ->required(),
+
+                Forms\Components\Textarea::make('remarks')
+                    ->columnSpanFull(),
+            ]);
+    }
+
+    /**
+     * Get options for the BarangMasuk select field.
+     */
+    private static function getBarangMasukOptions(): array
+    {
+        return BarangMasuk::with('principleSubdealer')
+            ->get()
+            ->mapWithKeys(function ($barangMasuk) {
+                $formattedDate = \Carbon\Carbon::parse($barangMasuk->tanggal)->format('d-m-Y');
+                return [
+                    $barangMasuk->id => sprintf(
+                        '%s | %s - %s',
+                        $barangMasuk->nomor_barang_masuk,
+                        $formattedDate,
+                        $barangMasuk->principleSubdealer->nama
+                    )
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Update form fields based on the selected BarangMasuk.
+     */
+    private static function updateBarangMasukDetails(Set $set, $state): void
+    {
+        if (!$state) {
+            $set('total_harga_modal', '');
+            $set('nama_principle', '');
+            return;
+        }
+
+        $barangMasuk = BarangMasuk::with(['barangMasukDetails', 'principleSubdealer'])->find($state);
+
+        if (!$barangMasuk) {
+            return;
+        }
+
+        $totalHargaModal = self::calculateTotalHargaModal($barangMasuk);
+
+        $set('total_harga_modal', number_format($totalHargaModal, 0, ',', ','));
+        $set('nama_principle', $barangMasuk->principleSubdealer->nama ?? '');
+    }
+
+    /**
+     * Calculate the total modal price from BarangMasukDetails.
+     */
+    private static function calculateTotalHargaModal(BarangMasuk $barangMasuk): float
+    {
+        return $barangMasuk->barangMasukDetails->reduce(function ($carry, $detail) {
+            return $carry + ($detail->harga_modal * $detail->jumlah_barang_masuk);
+        }, 0);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('barangMasuk.nomor_barang_masuk')
+                    ->label('No. Barang Masuk')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('barangMasuk.tanggal')
+                    ->label('Tanggal Barang Masuk')
+                    ->date(),
+                Tables\Columns\TextColumn::make('jatuh_tempo')
+                    ->label('Jatuh Tempo')
+                    ->date()
+                    ->sortable(),
+                Tables\Columns\BadgeColumn::make('status_pembayaran')
+                    ->colors([
+                        'danger' => 'belum lunas',
+                        'warning' => 'tercicil',
+                        'success' => 'sudah lunas',
+                    ])
+                    ->label('Status')
+                    ->formatStateUsing(fn($state) => ucwords($state)),
+                Tables\Columns\TextColumn::make('sudah_dibayar')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('total_harga_modal')
+                    ->label('Total Harga Modal')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('sisa_hutang')
+                    ->label('Sisa Hutang')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->state(function ($record) {
+                        $totalHutang = (float) str_replace(',', '', $record->total_harga_modal);
+                        $sudahDibayar = (float) $record->sudah_dibayar;
+                        return $totalHutang - $sudahDibayar;
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListUtangs::route('/'),
+            'create' => Pages\CreateUtang::route('/create'),
+            'edit' => Pages\EditUtang::route('/{record}/edit'),
+        ];
+    }
+}

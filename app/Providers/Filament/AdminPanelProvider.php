@@ -43,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Manajemen Produk',
                 'Transaksi',
+                'Reminder',
                 'Master Data',
             ])
             ->middleware([
