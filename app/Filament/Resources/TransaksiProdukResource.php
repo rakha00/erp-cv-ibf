@@ -165,6 +165,27 @@ class TransaksiProdukResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('download')
+                    ->label('Download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->form([
+                        Forms\Components\Select::make('type')
+                            ->label('Dokumen')
+                            ->options([
+                                'invoice' => 'Invoice',
+                                'surat_jalan' => 'Surat Jalan',
+                            ]),
+                    ])
+                    ->action(function (TransaksiProduk $record, array $data) {
+                        $routes = [
+                            'invoice' => 'transaksi-produk.invoice',
+                            'surat_jalan' => 'transaksi-produk.surat-jalan',
+                        ];
+
+                        return redirect()->to(
+                            route($routes[$data['type']], $record)
+                        );
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
