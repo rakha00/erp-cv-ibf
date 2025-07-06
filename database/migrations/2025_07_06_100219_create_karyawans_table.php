@@ -10,12 +10,13 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('unit_produks', function (Blueprint $table) {
+        Schema::create('karyawans', function (Blueprint $table) {
             $table->id();
-            $table->string('sku')->unique();
-            $table->string('nama_unit');
-            $table->decimal('harga_modal', 15, 0);
-            $table->integer('stok_awal')->default(0);
+            $table->string('nama');
+            $table->string('jabatan');
+            $table->string('no_hp');
+            $table->text('alamat');
+            $table->decimal('gaji_pokok', 15, 2);
             $table->text('remarks')->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -27,6 +28,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('unit_produks');
+        Schema::dropIfExists('karyawans');
     }
 };

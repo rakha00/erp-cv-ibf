@@ -16,12 +16,12 @@ return new class extends Migration {
             $table->foreignId('unit_produk_id')->constrained()->onDelete('restrict');
             $table->string('sku');
             $table->string('nama_unit');
-            $table->decimal('harga_modal', 20, 0)->default(0);
-            $table->decimal('harga_jual', 20, 0)->default(0);
+            $table->decimal('harga_modal', 15, 0)->default(0);
+            $table->decimal('harga_jual', 15, 0)->default(0);
             $table->integer('jumlah_keluar')->default(0);
-            $table->decimal('total_modal', 20, 0)->default(0);
-            $table->decimal('total_harga_jual', 20, 0)->default(0);
-            $table->decimal('keuntungan', 20, 0)->default(0);
+            $table->decimal('total_modal', 15, 0)->default(0);
+            $table->decimal('total_harga_jual', 15, 0)->default(0);
+            $table->decimal('keuntungan', 15, 0)->default(0);
             $table->text('remarks')->nullable();
             $table->timestamps();
             $table->softDeletes();
