@@ -2,16 +2,38 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\BarangMasuk;
+use App\Models\BarangMasukDetail;
+use App\Models\PrincipleSubdealer;
+use App\Models\UnitProduk;
+use Carbon\Carbon;
 
 class BarangMasukSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * @return void
      */
-    public function run(): void
+    public function run()
     {
-        //
+        $principle = PrincipleSubdealer::first();
+        $products = UnitProduk::all();
+
+        $barangMasuk = BarangMasuk::create([
+            'principle_subdealer_id' => $principle->id,
+            'nomor_barang_masuk' => 'BM/' . Carbon::now()->format('dmY') . '-1',
+            'tanggal' => Carbon::now(),
+        ]);
+
+        foreach ($products as $product) {
+            BarangMasukDetail::create([
+                'barang_masuk_id' => $barangMasuk->id,
+                'unit_produk_id' => $product->id,
+                'harga_modal' => $product->harga_modal,
+                'jumlah_barang_masuk' => rand(5, 20),
+            ]);
+        }
     }
 }

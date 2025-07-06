@@ -14,8 +14,6 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('barang_masuk_id')->constrained()->onDelete('restrict');
             $table->foreignId('unit_produk_id')->constrained()->onDelete('restrict');
-            $table->string('sku');
-            $table->string('nama_unit');
             $table->decimal('harga_modal', 15, 0);
             $table->integer('jumlah_barang_masuk');
             $table->text('remarks')->nullable();

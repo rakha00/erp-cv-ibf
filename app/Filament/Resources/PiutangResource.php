@@ -47,8 +47,7 @@ class PiutangResource extends Resource
                     ->label('Total Harga Modal')
                     ->required()
                     ->prefix('Rp ')
-                    ->readOnly()
-                    ->formatStateUsing(fn($state) => number_format($state, 0, ',', '.')),
+                    ->readOnly(),
 
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
@@ -100,7 +99,7 @@ class PiutangResource extends Resource
     private static function updateTransaksiProdukDetails(Set $set, $state): void
     {
         if (!$state) {
-            $set('total_harga_jual', '');
+            $set('total_harga_modal', '');
             return;
         }
 
@@ -161,7 +160,7 @@ class PiutangResource extends Resource
                     ->prefix('Rp ')
                     ->numeric()
                     ->state(function ($record) {
-                        $totalPiutang = (float) $record->total_harga_jual;
+                        $totalPiutang = (float) $record->total_harga_modal;
                         $sudahDibayar = (float) $record->sudah_dibayar;
                         return $totalPiutang - $sudahDibayar;
                     })

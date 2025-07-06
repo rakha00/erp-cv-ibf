@@ -10,7 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('pengahasilan_karyawan_details', function (Blueprint $table) {
+        Schema::create('penghasilan_karyawan_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('karyawan_id')->constrained()->onDelete('restrict');
             $table->decimal('kasbon', 15, 0)->default(0);
@@ -28,6 +28,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('pengahasilan_karyawan_details');
+        Schema::dropIfExists('penghasilan_karyawan_details');
     }
 };

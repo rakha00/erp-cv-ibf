@@ -11,7 +11,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class PenghasilanKaryawanDetailsRelationManager extends RelationManager
+class PenghasilanKaryawanDetailRelationManager extends RelationManager
 {
     protected static string $relationship = 'penghasilanKaryawanDetails';
 

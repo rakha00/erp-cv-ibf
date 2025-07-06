@@ -85,24 +85,24 @@ class KaryawanResource extends Resource
                     ->numeric()
                     ->prefix('Rp ')
                     ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilan_karyawan_details_sum_lembur ?? 0),
+                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('lembur')),
                 Tables\Columns\TextColumn::make('bonus')
                     ->numeric()
                     ->prefix('Rp ')
                     ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilan_karyawan_details_sum_bonus ?? 0),
+                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('bonus')),
                 Tables\Columns\TextColumn::make('kasbon')
                     ->numeric()
                     ->prefix('Rp ')
                     ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilan_karyawan_details_sum_kasbon ?? 0),
+                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('kasbon')),
                 Tables\Columns\TextColumn::make('total_gaji')
                     ->label('Total Gaji')
                     ->numeric()
                     ->prefix('Rp ')
                     ->state(function (Karyawan $record) {
-                        $lembur = $record->penghasilan_karyawan_details_sum_lembur ?? 0;
-                        $bonus = $record->penghasilan_karyawan_details_sum_bonus ?? 0;
+                        $lembur = $record->penghasilanKaryawanDetails->sum('lembur');
+                        $bonus = $record->penghasilanKaryawanDetails->sum('bonus');
                         return $record->gaji_pokok + $lembur + $bonus;
                     }),
                 Tables\Columns\TextColumn::make('gaji_diterima')
@@ -110,9 +110,9 @@ class KaryawanResource extends Resource
                     ->numeric()
                     ->prefix('Rp ')
                     ->state(function (Karyawan $record) {
-                        $lembur = $record->penghasilan_karyawan_details_sum_lembur ?? 0;
-                        $bonus = $record->penghasilan_karyawan_details_sum_bonus ?? 0;
-                        $kasbon = $record->penghasilan_karyawan_details_sum_kasbon ?? 0;
+                        $lembur = $record->penghasilanKaryawanDetails->sum('lembur');
+                        $bonus = $record->penghasilanKaryawanDetails->sum('bonus');
+                        $kasbon = $record->penghasilanKaryawanDetails->sum('kasbon');
                         $totalGaji = $record->gaji_pokok + $lembur + $bonus;
                         return $totalGaji - $kasbon;
                     }),
@@ -133,8 +133,8 @@ class KaryawanResource extends Resource
                 \Filament\Tables\Filters\SelectFilter::make('tahun')
                     ->label('Filter Tahun')
                     ->options(array_combine(
-                        range(date('Y') - 5, date('Y') + 5),
-                        range(date('Y') - 5, date('Y') + 5)
+                        range(date('Y') - 0, date('Y') + 5),
+                        range(date('Y') - 0, date('Y') + 5)
                     ))
                     ->default(date('Y'))
                     ->query(fn (Builder $query, array $data) => $query),
@@ -179,7 +179,7 @@ class KaryawanResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\PenghasilanKaryawanDetailsRelationManager::class,
+            RelationManagers\PenghasilanKaryawanDetailRelationManager::class,
         ];
     }
 

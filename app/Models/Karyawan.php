@@ -22,6 +22,6 @@ class Karyawan extends Model
 
     public function penghasilanKaryawanDetails()
     {
-        return $this->hasMany(PengahasilanKaryawanDetail::class);
+        return $this->hasMany(PenghasilanKaryawanDetail::class);
     }
 }

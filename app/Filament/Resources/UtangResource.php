@@ -57,13 +57,6 @@ class UtangResource extends Resource
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
                     ->required(),
-                Forms\Components\TextInput::make('sudah_dibayar')
-                    ->label('Sudah Dibayar')
-                    ->readOnly()
-                    ->numeric()
-                    ->prefix('Rp')
-                    ->stripCharacters(',')
-                    ->formatStateUsing(fn($state, $record) => $record?->sudah_dibayar ?? 0),
 
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
@@ -77,6 +70,14 @@ class UtangResource extends Resource
                         $totalBaru = $sudahDibayarLama + $pembayaranBaru;
                         $set('sudah_dibayar', $totalBaru);
                     }),
+
+                Forms\Components\TextInput::make('sudah_dibayar')
+                    ->label('Sudah Dibayar')
+                    ->readOnly()
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->stripCharacters(',')
+                    ->formatStateUsing(fn($state, $record) => $record?->sudah_dibayar ?? 0),
 
                 Forms\Components\FileUpload::make('foto')
                     ->label('Foto Bukti')

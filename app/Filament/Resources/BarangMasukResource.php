@@ -44,12 +44,15 @@ class BarangMasukResource extends Resource
                     ->reactive()
                     ->afterStateUpdated(function ($state, $set) {
                         if ($state) {
-                            $date = Carbon::parse($state);
-                            $set('nomor_barang_masuk', sprintf(
-                                'BM/%s-%d',
-                                $date->format('dmY'),
-                                BarangMasuk::whereDate('tanggal', $state)->count() + 1
-                            ));
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
+                                $date = Carbon::parse($state);
+                                $nextId = BarangMasuk::whereDate('tanggal', $state)->lockForUpdate()->count() + 1;
+                                $set('nomor_barang_masuk', sprintf(
+                                    'BM/%s-%d',
+                                    $date->format('dmY'),
+                                    $nextId
+                                ));
+                            });
                         }
                     }),
                 Forms\Components\TextInput::make('nomor_barang_masuk')
@@ -96,8 +99,12 @@ class BarangMasukResource extends Resource
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(function () {
-                        $years = range(date('Y') - 0, date('Y') + 3);
-                        return array_combine($years, $years);
+                        $years = BarangMasuk::selectRaw('extract(year from tanggal) as year')
+                            ->distinct()
+                            ->orderBy('year', 'desc')
+                            ->pluck('year')
+                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                        return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(

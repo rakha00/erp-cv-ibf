@@ -27,16 +27,14 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($unit = UnitProduk::find($state)) {
-                            $set('sku', $unit->sku);
-                            $set('nama_unit', $unit->nama_unit);
                             $set('harga_modal', $unit->harga_modal);
+                            $set('nama_unit', $unit->nama_unit);
                         }
                     }),
-                Forms\Components\Hidden::make('sku')
-                    ->required(),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
-                    ->readOnly(),
+                    ->disabled()
+                    ->dehydrated(false),
                 Forms\Components\Hidden::make('harga_modal')
                     ->required(),
                 Forms\Components\TextInput::make('jumlah_barang_masuk')
@@ -54,10 +52,10 @@ class BarangMasukDetailsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('sku')
             ->columns([
-                Tables\Columns\TextColumn::make('sku')
+                Tables\Columns\TextColumn::make('unitProduk.sku')
                     ->label('SKU')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('nama_unit')
+                Tables\Columns\TextColumn::make('unitProduk.nama_unit')
                     ->label('Nama Unit')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -11,8 +10,10 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
+     *
+     * @return void
      */
-    public function run(): void
+    public function run()
     {
         // User::factory(10)->create();
 
@@ -22,9 +23,15 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
+
         $this->call([
-            UnitProdukSeeder::class,
+            KaryawanSeeder::class,
             PrincipleSubdealerSeeder::class,
+            UnitProdukSeeder::class,
+            BarangMasukSeeder::class,
+            TransaksiProdukSeeder::class,
+            UtangSeeder::class,
+            PiutangSeeder::class,
         ]);
     }
 }

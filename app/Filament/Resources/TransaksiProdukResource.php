@@ -38,13 +38,15 @@ class TransaksiProdukResource extends Resource
                     ->reactive()
                     ->afterStateUpdated(function ($state, $set) {
                         if ($state) {
-                            $date = Carbon::parse($state);
-                            $formatDate = $date->format('dmY');
-                            $nextNumber = TransaksiProduk::whereDate('tanggal', $state)->count() + 1;
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
+                                $date = Carbon::parse($state);
+                                $formatDate = $date->format('dmY');
+                                $nextNumber = TransaksiProduk::whereDate('tanggal', $state)->lockForUpdate()->count() + 1;
 
-                            // Set both invoice and delivery note numbers
-                            $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
-                            $set('no_surat_jalan', "SJ/{$formatDate}-{$nextNumber}");
+                                // Set both invoice and delivery note numbers
+                                $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
+                                $set('no_surat_jalan', "SJ/{$formatDate}-{$nextNumber}");
+                            });
                         }
                     }),
                 Forms\Components\TextInput::make('no_invoice')
@@ -83,26 +85,22 @@ class TransaksiProdukResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_harga_jual')
                     ->label('Total Harga Jual')
-                    ->getStateUsing(
-                        fn(TransaksiProduk $record): string =>
-                        'Rp ' . number_format(
-                            $record->transaksiProdukDetails()
-                                ->selectRaw('SUM(harga_jual * jumlah_keluar) as total')
-                                ->value('total') ?? 0,
-                            0,
-                            ',',
-                            '.'
-                        )
-                    ),
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->getStateUsing(function (TransaksiProduk $record) {
+                        return $record->transaksiProdukDetails->sum(function ($detail) {
+                            return $detail->harga_jual * $detail->jumlah_keluar;
+                        });
+                    }),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
-                    ->getStateUsing(
-                        fn(TransaksiProduk $record): string =>
-                        'Rp ' .
-                        $record->transaksiProdukDetails()
-                            ->selectRaw('SUM((harga_jual - harga_modal) * jumlah_keluar) as total')
-                            ->value('total') ?? 0,
-                    ),
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->getStateUsing(function (TransaksiProduk $record) {
+                        return $record->transaksiProdukDetails->sum(function ($detail) {
+                            return ($detail->harga_jual - $detail->unitProduk->harga_modal) * $detail->jumlah_keluar;
+                        });
+                    }),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -121,8 +119,12 @@ class TransaksiProdukResource extends Resource
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(function () {
-                        $years = range(date('Y') - 0, date('Y') + 3);
-                        return array_combine($years, $years);
+                        $years = TransaksiProduk::selectRaw('extract(year from tanggal) as year')
+                            ->distinct()
+                            ->orderBy('year', 'desc')
+                            ->pluck('year')
+                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                        return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(

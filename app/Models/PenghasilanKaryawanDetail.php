@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class PengahasilanKaryawanDetail extends Model
+class PenghasilanKaryawanDetail extends Model
 {
     use SoftDeletes;
 
-    protected $table = "pengahasilan_karyawan_details";
+    protected $table = "penghasilan_karyawan_details";
 
     protected $fillable = [
         'karyawan_id',

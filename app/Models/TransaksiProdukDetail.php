@@ -14,14 +14,18 @@ class TransaksiProdukDetail extends Model
     protected $fillable = [
         'transaksi_produk_id',
         'unit_produk_id',
-        'sku',
-        'nama_unit',
-        'harga_modal',
         'harga_jual',
         'jumlah_keluar',
-        'total_modal',
-        'total_harga_jual',
-        'keuntungan',
         'remarks',
     ];
+
+    public function transaksiProduk()
+    {
+        return $this->belongsTo(TransaksiProduk::class);
+    }
+
+    public function unitProduk()
+    {
+        return $this->belongsTo(UnitProduk::class);
+    }
 }
