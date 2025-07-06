@@ -2,10 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BarangMasukResource\Pages;
-use App\Filament\Resources\BarangMasukResource\RelationManagers;
-use App\Models\BarangMasuk;
-use App\Models\PrincipleSubdealer;
+use App\Filament\Resources\TransaksiProdukResource\Pages;
+use App\Filament\Resources\TransaksiProdukResource\RelationManagers;
+use App\Models\TransaksiProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,15 +14,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 
-class BarangMasukResource extends Resource
+class TransaksiProdukResource extends Resource
 {
-    protected static ?string $model = BarangMasuk::class;
+    protected static ?string $model = TransaksiProduk::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-archive-box-arrow-down';
+    protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $navigationLabel = 'Barang Masuk';
+    protected static ?string $navigationLabel = 'Transaksi Produk';
 
-    protected static ?string $pluralModelLabel = 'Barang Masuk';
+    protected static ?string $pluralModelLabel = 'Transaksi Produk';
 
     protected static ?string $navigationGroup = 'Transaksi';
 
@@ -33,11 +32,6 @@ class BarangMasukResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('principle_subdealer_id')
-                    ->label('Principle/Subdealer')
-                    ->options(PrincipleSubdealer::pluck('nama', 'id'))
-                    ->searchable()
-                    ->required(),
                 Forms\Components\DatePicker::make('tanggal')
                     ->label('Tanggal')
                     ->required()
@@ -45,17 +39,25 @@ class BarangMasukResource extends Resource
                     ->afterStateUpdated(function ($state, $set) {
                         if ($state) {
                             $date = Carbon::parse($state);
-                            $set('nomor_barang_masuk', sprintf(
-                                'BM/%s-%d',
-                                $date->format('dmY'),
-                                BarangMasuk::whereDate('tanggal', $state)->count() + 1
-                            ));
+                            $formatDate = $date->format('dmY');
+                            $nextNumber = TransaksiProduk::whereDate('tanggal', $state)->count() + 1;
+
+                            // Set both invoice and delivery note numbers
+                            $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
+                            $set('no_surat_jalan', "SJ/{$formatDate}-{$nextNumber}");
                         }
                     }),
-                Forms\Components\TextInput::make('nomor_barang_masuk')
-                    ->label('Nomor Barang Masuk')
+                Forms\Components\TextInput::make('no_invoice')
+                    ->label('No Invoice')
                     ->required()
                     ->readOnly()
+                    ->reactive()
+                    ->maxLength(50),
+                Forms\Components\TextInput::make('no_surat_jalan')
+                    ->label('No Surat Jalan')
+                    ->required()
+                    ->readOnly()
+                    ->reactive()
                     ->maxLength(50),
                 Forms\Components\Textarea::make('remarks')
                     ->label('Remarks')
@@ -67,17 +69,34 @@ class BarangMasukResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nomor_barang_masuk')
-                    ->label('No. Barang Masuk')
+                Tables\Columns\TextColumn::make('no_invoice')
+                    ->label('No Invoice')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('principleSubdealer.nama')
-                    ->label('Principle/Subdealer')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('no_surat_jalan')
+                    ->label('No Surat Jalan')
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
                     ->date()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('total_harga_jual')
+                    ->label('Total Harga Jual')
+                    ->getStateUsing(
+                        fn(TransaksiProduk $record): int =>
+                        $record->transaksiProdukDetails()
+                            ->selectRaw('SUM(harga_jual * jumlah_keluar) as total')
+                            ->value('total') ?? 0
+                    ),
+                Tables\Columns\TextColumn::make('total_keuntungan')
+                    ->label('Total Keuntungan')
+                    ->getStateUsing(
+                        fn(TransaksiProduk $record): int =>
+                        $record->transaksiProdukDetails()
+                            ->selectRaw('SUM((harga_jual - harga_modal) * jumlah_keluar) as total')
+                            ->value('total') ?? 0
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -85,12 +104,12 @@ class BarangMasukResource extends Resource
                     ->label('Dibuat')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Diubah')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
@@ -143,20 +162,13 @@ class BarangMasukResource extends Resource
                             fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
-                // Tables\Filters\TrashedFilter::make()
-                //     ->label('Trashed'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                // Tables\Actions\DeleteAction::make(),
-                // Tables\Actions\ForceDeleteAction::make(),
-                // Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    // Tables\Actions\ForceDeleteBulkAction::make(),
-                    // Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -164,24 +176,16 @@ class BarangMasukResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\BarangMasukDetailsRelationManager::class,
+            RelationManagers\TransaksiProdukDetailsRelationManager::class,
         ];
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListBarangMasuks::route('/'),
-            'create' => Pages\CreateBarangMasuk::route('/create'),
-            'edit' => Pages\EditBarangMasuk::route('/{record}/edit'),
+            'index' => Pages\ListTransaksiProduks::route('/'),
+            'create' => Pages\CreateTransaksiProduk::route('/create'),
+            'edit' => Pages\EditTransaksiProduk::route('/{record}/edit'),
         ];
     }
 }

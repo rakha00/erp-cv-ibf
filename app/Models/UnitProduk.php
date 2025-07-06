@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UnitProduk extends Model
 {
-     use SoftDeletes;
-     
+    use SoftDeletes;
+
     protected $table = "unit_produks";
 
     protected $fillable = [
@@ -23,4 +23,10 @@ class UnitProduk extends Model
     {
         return $this->hasMany(BarangMasukDetail::class);
     }
+
+    public function transaksiProdukDetails()
+    {
+        return $this->hasMany(TransaksiProdukDetail::class);
+    }
 }
+

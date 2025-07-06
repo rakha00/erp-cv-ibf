@@ -17,4 +17,9 @@ class TransaksiProduk extends Model
         'tanggal',
         'remarks',
     ];
+
+    public function transaksiProdukDetails()
+    {
+        return $this->hasMany(TransaksiProdukDetail::class);
+    }
 }

@@ -22,6 +22,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
                     ->options(UnitProduk::pluck('sku', 'id'))
+                    ->searchable()
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
@@ -35,8 +36,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->required(),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
-                    ->readOnly()
-                    ->reactive(),
+                    ->readOnly(),
                 Forms\Components\Hidden::make('harga_modal')
                     ->required(),
                 Forms\Components\TextInput::make('jumlah_barang_masuk')

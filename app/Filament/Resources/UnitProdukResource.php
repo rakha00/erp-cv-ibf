@@ -48,9 +48,9 @@ class UnitProdukResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(0),
-                // Forms\Components\Textarea::make('remarks')
-                //     ->label('Remarks')
-                //     ->columnSpanFull(),
+                Forms\Components\Textarea::make('remarks')
+                    ->label('Remarks')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -82,7 +82,7 @@ class UnitProdukResource extends Resource
                         fn(UnitProduk $record): int =>
                         $record->stok_awal
                         + $record->barangMasukDetails()->sum('jumlah_barang_masuk')
-                        // - $record->transaksiProdukDetails()->sum('jumlah_keluar')
+                        - $record->transaksiProdukDetails()->sum('jumlah_keluar')
                     ),
                 Tables\Columns\TextColumn::make('stok_masuk')
                     ->label('Stok Masuk')
@@ -95,10 +95,14 @@ class UnitProdukResource extends Resource
                 Tables\Columns\TextColumn::make('stok_keluar')
                     ->label('Stok Keluar')
                     ->numeric()
-                    ->sortable(),
-                // Tables\Columns\TextColumn::make('remarks')
-                // ->label('Remarks')
-                // ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable()
+                    ->getStateUsing(
+                        fn(UnitProduk $record): int =>
+                        $record->transaksiProdukDetails()->sum('jumlah_keluar')
+                    ),
+                Tables\Columns\TextColumn::make('remarks')
+                    ->label('Remarks')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime()

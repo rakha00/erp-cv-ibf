@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BarangMasukDetail extends Model
 {
-     use SoftDeletes;
-     
+    use SoftDeletes;
+
     protected $table = "barang_masuk_details";
 
     protected $fillable = [
@@ -18,7 +18,7 @@ class BarangMasukDetail extends Model
         "nama_unit",
         "harga_modal",
         "jumlah_barang_masuk",
-        "notes",
+        "remarks",
     ];
 
     public function barangMasuk()
