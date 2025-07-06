@@ -45,8 +45,22 @@ class BarangMasukResource extends Resource
                     ->afterStateUpdated(function ($state, $set) {
                         if ($state) {
                             \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
-                                $date = Carbon::parse($state);
-                                $nextId = BarangMasuk::whereDate('tanggal', $state)->lockForUpdate()->count() + 1;
+                                $date = \Carbon\Carbon::parse($state);
+                                $latestRecord = BarangMasuk::whereDate('tanggal', $state)
+                                    ->withTrashed()
+                                    ->orderBy('created_at', 'desc')
+                                    ->lockForUpdate()
+                                    ->first();
+
+                                $nextId = 1;
+                                if ($latestRecord) {
+                                    $parts = explode('-', $latestRecord->nomor_barang_masuk);
+                                    $lastId = end($parts);
+                                    if (is_numeric($lastId)) {
+                                        $nextId = (int) $lastId + 1;
+                                    }
+                                }
+
                                 $set('nomor_barang_masuk', sprintf(
                                     'BM/%s-%d',
                                     $date->format('dmY'),
@@ -95,6 +109,7 @@ class BarangMasukResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->defaultSort('tanggal', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
@@ -103,7 +118,7 @@ class BarangMasukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                            ->mapWithKeys(fn($year) => [$year => $year]);
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
@@ -150,20 +165,13 @@ class BarangMasukResource extends Resource
                             fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
-                // Tables\Filters\TrashedFilter::make()
-                //     ->label('Trashed'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                // Tables\Actions\DeleteAction::make(),
-                // Tables\Actions\ForceDeleteAction::make(),
-                // Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    // Tables\Actions\ForceDeleteBulkAction::make(),
-                    // Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -173,14 +181,6 @@ class BarangMasukResource extends Resource
         return [
             RelationManagers\BarangMasukDetailsRelationManager::class,
         ];
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
     }
 
     public static function getPages(): array

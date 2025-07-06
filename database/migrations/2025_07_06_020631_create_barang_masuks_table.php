@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('barang_masuks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('principle_subdealer_id')->constrained()->onDelete('restrict');
-            $table->string('nomor_barang_masuk');
+            $table->string('nomor_barang_masuk')->unique();
             $table->date('tanggal');
             $table->text('remarks')->nullable();
             $table->timestamps();
