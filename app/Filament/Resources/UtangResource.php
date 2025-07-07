@@ -161,7 +161,8 @@ class UtangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('barangMasuk.nomor_barang_masuk')
                     ->label('No. Barang Masuk')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('barangMasuk.tanggal')
                     ->label('Tanggal Barang Masuk')
                     ->date(),
@@ -195,6 +196,8 @@ class UtangResource extends Resource
                         return $totalHutang - $sudahDibayar;
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('remarks')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

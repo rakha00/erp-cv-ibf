@@ -111,7 +111,9 @@ class TransaksiProdukResource extends Resource
                     ->numeric()
                     ->getStateUsing(function (TransaksiProduk $record) {
                         return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
-                            return $carry + ($detail->harga_jual - $detail->unitProduk->harga_modal) * $detail->jumlah_keluar;
+                            $unitProduk = $detail->unitProduk()->withTrashed()->first();
+                            $hargaModal = $unitProduk->harga_modal ?? 0;
+                            return $carry + ($detail->harga_jual - $hargaModal) * $detail->jumlah_keluar;
                         }, 0);
                     }),
                 Tables\Columns\TextColumn::make('remarks')

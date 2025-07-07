@@ -27,7 +27,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
-                    ->options(UnitProduk::pluck('sku', 'id'))
+                    ->options(UnitProduk::withTrashed()->pluck('sku', 'id'))
                     ->searchable()
                     ->required()
                     ->reactive()
@@ -40,7 +40,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                             $set('jumlah_keluar', null);
                             return;
                         }
-                        $unitProduk = UnitProduk::find($state);
+                        $unitProduk = UnitProduk::withTrashed()->find($state);
                         $set('nama_unit', $unitProduk?->nama_unit);
                         $set('harga_modal', number_format($unitProduk?->harga_modal, 0, ',', ','));
                         $set('keuntungan', number_format(0, 0, ',', ','));
@@ -52,7 +52,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->afterStateHydrated(function (Set $set, Get $get) {
                         $unitProdukId = $get('unit_produk_id');
                         if ($unitProdukId) {
-                            $unitProduk = UnitProduk::find($unitProdukId);
+                            $unitProduk = UnitProduk::withTrashed()->find($unitProdukId);
                             $set('nama_unit', $unitProduk?->nama_unit);
                         }
                     }),
@@ -64,7 +64,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->afterStateHydrated(function (Set $set, Get $get) {
                         $unitProdukId = $get('unit_produk_id');
                         if ($unitProdukId) {
-                            $unitProduk = UnitProduk::find($unitProdukId);
+                            $unitProduk = UnitProduk::withTrashed()->find($unitProdukId);
                             $set('harga_modal', number_format($unitProduk?->harga_modal, 0, ',', ','));
                         }
                     }),
@@ -119,16 +119,23 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
             ->recordTitleAttribute('sku')
             ->columns([
                 Tables\Columns\TextColumn::make('unitProduk.sku')
-                    ->label('SKU'),
+                    ->label('SKU')
+                    ->getStateUsing(fn($record) => $record->unitProduk()->withTrashed()->first()?->sku ?? '-')
+                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
+                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('unitProduk.nama_unit')
-                    ->label('Unit'),
+                    ->label('Unit')
+                    ->getStateUsing(fn($record) => $record->unitProduk()->withTrashed()->first()?->nama_unit ?? '-')
+                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
+                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('jumlah_keluar')
                     ->label('Qty')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('unitProduk.harga_modal')
                     ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
-                    ->numeric(),
+                    ->numeric()
+                    ->getStateUsing(fn($record) => $record->unitProduk()->withTrashed()->first()?->harga_modal ?? 0),
                 Tables\Columns\TextColumn::make('harga_jual')
                     ->label('Harga Jual/Unit')
                     ->prefix('Rp ')
@@ -137,15 +144,18 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn($record) => $record->unitProduk->harga_modal * $record->jumlah_keluar)
+                    ->state(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        return ($unitProduk?->harga_modal ?? 0) * $record->jumlah_keluar;
+                    })
                     ->summarize(
                         Summarizer::make()
                             ->label('Total Harga Modal')
                             ->numeric()
                             ->prefix('Rp ')
                             ->using(
-                                fn(QueryBuilder $query): float => $query->join('unit_produks', 'transaksi_produk_details.unit_produk_id', '=', 'unit_produks.id')
-                                    ->sum(DB::raw('unit_produks.harga_modal * transaksi_produk_details.jumlah_keluar'))
+                                fn(QueryBuilder $query): float => $query->leftJoin('unit_produks', 'transaksi_produk_details.unit_produk_id', '=', 'unit_produks.id')
+                                    ->sum(DB::raw('COALESCE(unit_produks.harga_modal, 0) * transaksi_produk_details.jumlah_keluar'))
                             )
                     ),
 
@@ -153,7 +163,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->label('Total Harga Jual')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn($record) => $record->harga_jual * $record->jumlah_keluar)
+                    ->state(fn($record) => $record->harga_jual * $record->jumlah_keluar)
                     ->summarize(
                         Summarizer::make()
                             ->label('Total Harga Jual')
@@ -161,21 +171,23 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                             ->prefix('Rp ')
                             ->using(fn(QueryBuilder $query): float => $query->sum(DB::raw('transaksi_produk_details.harga_jual * transaksi_produk_details.jumlah_keluar')))
                     ),
-
-
                 Tables\Columns\TextColumn::make('keuntungan')
                     ->label('Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn($record) => ($record->harga_jual - $record->unitProduk->harga_modal) * $record->jumlah_keluar)
+                    ->state(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        $hargaModal = $unitProduk?->harga_modal ?? 0;
+                        return ($record->harga_jual - $hargaModal) * $record->jumlah_keluar;
+                    })
                     ->summarize(
                         Summarizer::make()
                             ->label('Keuntungan')
                             ->numeric()
                             ->prefix('Rp ')
                             ->using(
-                                fn(QueryBuilder $query): float => $query->join('unit_produks', 'transaksi_produk_details.unit_produk_id', '=', 'unit_produks.id')
-                                    ->sum(DB::raw('(transaksi_produk_details.harga_jual - unit_produks.harga_modal) * transaksi_produk_details.jumlah_keluar'))
+                                fn(QueryBuilder $query): float => $query->leftJoin('unit_produks', 'transaksi_produk_details.unit_produk_id', '=', 'unit_produks.id')
+                                    ->sum(DB::raw('(transaksi_produk_details.harga_jual - COALESCE(unit_produks.harga_modal, 0)) * transaksi_produk_details.jumlah_keluar'))
                             )
                     ),
 

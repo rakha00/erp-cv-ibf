@@ -127,7 +127,8 @@ class PiutangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('transaksiProduk.no_invoice')
                     ->label('No. Transaksi')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('transaksiProduk.tanggal')
                     ->label('Tanggal Transaksi')
                     ->date(),
@@ -165,6 +166,8 @@ class PiutangResource extends Resource
                         return $totalPiutang - $sudahDibayar;
                     })
                     ->sortable(),
+                Tables\Columns\TextColumn::make('remarks')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

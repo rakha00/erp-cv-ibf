@@ -7,10 +7,13 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\RawJs;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Filament\Tables;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class BarangMasukDetailsRelationManager extends RelationManager
 {
@@ -22,18 +25,18 @@ class BarangMasukDetailsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
-                    ->options(UnitProduk::pluck('sku', 'id'))
+                    ->options(UnitProduk::withTrashed()->pluck('sku', 'id'))
                     ->searchable()
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
-                        if ($unit = UnitProduk::find($state)) {
+                        if ($unit = UnitProduk::withTrashed()->find($state)) {
                             $set('harga_modal', $unit->harga_modal);
                             $set('nama_unit', $unit->nama_unit);
                         }
                     })
                     ->afterStateHydrated(function ($state, callable $set) {
-                        if ($unit = UnitProduk::find($state)) {
+                        if ($unit = UnitProduk::withTrashed()->find($state)) {
                             $set('nama_unit', $unit->nama_unit);
                         }
                     }),
@@ -78,10 +81,20 @@ class BarangMasukDetailsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('unitProduk.sku')
                     ->label('SKU')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        return $record->unitProduk()->withTrashed()->first()?->sku ?? '-';
+                    })
+                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
+                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('unitProduk.nama_unit')
                     ->label('Nama Unit')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function ($record) {
+                        return $record->unitProduk()->withTrashed()->first()?->nama_unit ?? '-';
+                    })
+                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
+                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')
                     ->label('Jumlah')
                     ->sortable(),
@@ -96,7 +109,14 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->numeric()
                     ->state(function ($record): float {
                         return $record->harga_modal * $record->jumlah_barang_masuk;
-                    }),
+                    })
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Harga Modal')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->using(fn(QueryBuilder $query): float => $query->sum(DB::raw('harga_modal * jumlah_barang_masuk')))
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
