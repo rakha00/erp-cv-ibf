@@ -192,6 +192,7 @@ class TransaksiProdukResource extends Resource
                     ->form([
                         Forms\Components\Select::make('type')
                             ->label('Dokumen')
+                            ->required()
                             ->options([
                                 'invoice' => 'Invoice',
                                 'surat_jalan' => 'Surat Jalan',
