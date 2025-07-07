@@ -41,7 +41,20 @@ class TransaksiProdukResource extends Resource
                             \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
                                 $date = Carbon::parse($state);
                                 $formatDate = $date->format('dmY');
-                                $nextNumber = TransaksiProduk::whereDate('tanggal', $state)->lockForUpdate()->count() + 1;
+                                $latestRecord = TransaksiProduk::whereDate('tanggal', $state)
+                                    ->withTrashed()
+                                    ->orderBy('created_at', 'desc')
+                                    ->lockForUpdate()
+                                    ->first();
+
+                                $nextNumber = 1;
+                                if ($latestRecord) {
+                                    $parts = explode('-', $latestRecord->no_invoice);
+                                    $lastId = end($parts);
+                                    if (is_numeric($lastId)) {
+                                        $nextNumber = (int) $lastId + 1;
+                                    }
+                                }
 
                                 // Set both invoice and delivery note numbers
                                 $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
@@ -123,7 +136,7 @@ class TransaksiProdukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                            ->mapWithKeys(fn($year) => [$year => $year]);
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {

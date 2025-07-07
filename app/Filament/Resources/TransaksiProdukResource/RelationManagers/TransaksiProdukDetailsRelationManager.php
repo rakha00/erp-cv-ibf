@@ -27,30 +27,89 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->options(UnitProduk::pluck('sku', 'id'))
                     ->searchable()
                     ->required()
-                    ->live()
+                    ->reactive()
                     ->afterStateUpdated(function (Set $set, $state) {
-                        if ($state) {
-                            $unitProduk = UnitProduk::find($state);
-                            $set('nama_unit', $unitProduk?->nama_unit);
-                        } else {
+                        if (!$state) {
                             $set('nama_unit', null);
+                            $set('harga_modal', null);
+                            $set('keuntungan', null);
+                            $set('harga_jual', null);
+                            $set('jumlah_keluar', null);
+                            return;
                         }
+                        $unitProduk = UnitProduk::find($state);
+                        $set('nama_unit', $unitProduk?->nama_unit);
+                        $set('harga_modal', number_format($unitProduk?->harga_modal, 0, ',', ','));
+                        $set('keuntungan', number_format(0, 0, ',', ','));
+                        $set('harga_jual', number_format(0, 0, ',', ','));
+                        $set('jumlah_keluar', 0);
                     }),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
                     ->disabled()
-                    ->dehydrated(false),
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function (Set $set, Get $get) {
+                        $unitProdukId = $get('unit_produk_id');
+                        if ($unitProdukId) {
+                            $unitProduk = UnitProduk::find($unitProdukId);
+                            $set('nama_unit', $unitProduk?->nama_unit);
+                        }
+                    }),
+                Forms\Components\TextInput::make('harga_modal')
+                    ->label('Harga Modal/Unit')
+                    ->prefix('Rp ')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function (Set $set, Get $get) {
+                        $unitProdukId = $get('unit_produk_id');
+                        if ($unitProdukId) {
+                            $unitProduk = UnitProduk::find($unitProdukId);
+                            $set('harga_modal', number_format($unitProduk?->harga_modal, 0, ',', ','));
+                        }
+                    }),
+                Forms\Components\TextInput::make('keuntungan')
+                    ->label('Keuntungan')
+                    ->prefix('Rp ')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function (Set $set, Get $get) {
+                        $hargaModal = (float) str_replace(',', '', $get('harga_modal'));
+                        $hargaJual = (float) str_replace(',', '', $get('harga_jual'));
+                        $jumlahKeluar = (int) $get('jumlah_keluar');
+                        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
+                        $set('keuntungan', number_format($keuntungan, 0, ',', ','));
+                    }),
                 Forms\Components\TextInput::make('harga_jual')
-                    ->label('Harga Jual')
+                    ->label('Harga Jual/Unit')
+                    ->prefix('Rp ')
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
                     ->numeric()
-                    ->required(),
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Modal')->money('IDR'))
+                    ->required()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (callable $get, callable $set) {
+                        $hargaJual = (float) str_replace(',', '', $get('harga_jual'));
+                        $hargaModal = (float) str_replace(',', '', $get('harga_modal'));
+                        $jumlahKeluar = (float) $get('jumlah_keluar');
+                        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
+                        $set('keuntungan', number_format($keuntungan, 0, ',', ','));
+                    }),
                 Forms\Components\TextInput::make('jumlah_keluar')
                     ->label('Jumlah Keluar')
                     ->numeric()
-                    ->required(),
+                    ->required()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (callable $get, callable $set) {
+                        $hargaJual = (float) str_replace(',', '', $get('harga_jual'));
+                        $hargaModal = (float) str_replace(',', '', $get('harga_modal'));
+                        $jumlahKeluar = (float) $get('jumlah_keluar');
+                        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
+                        $set('keuntungan', number_format($keuntungan, 0, ',', ','));
+                    }),
                 Forms\Components\Textarea::make('remarks')
                     ->label('Remarks')
-                    ->rows(3),
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -67,11 +126,11 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->label('Qty')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('unitProduk.harga_modal')
-                    ->label('Harga Modal')
+                    ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('harga_jual')
-                    ->label('Harga Jual')
+                    ->label('Harga Jual/Unit')
                     ->prefix('Rp ')
                     ->numeric(),
                 Tables\Columns\TextColumn::make('total_modal')
@@ -83,12 +142,14 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->label('Total Harga Jual')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn($record) => $record->harga_jual * $record->jumlah_keluar),
+                    ->getStateUsing(fn($record) => $record->harga_jual * $record->jumlah_keluar)
+                ,
                 Tables\Columns\TextColumn::make('keuntungan')
                     ->label('Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn($record) => ($record->harga_jual - $record->unitProduk->harga_modal) * $record->jumlah_keluar),
+                    ->getStateUsing(fn($record) => ($record->harga_jual - $record->unitProduk->harga_modal) * $record->jumlah_keluar)
+                ,
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
