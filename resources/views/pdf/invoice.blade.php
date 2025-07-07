@@ -8,9 +8,8 @@
 		body {
 			font-family: Arial, sans-serif;
 			font-size: 15px;
-			margin-left: 60px;
-			margin-right: 60px;
-			margin-top: 20px;
+			margin: 0;
+			padding: 0;
 		}
 
 		.header {
@@ -27,13 +26,11 @@
 		.company-info {
 			text-align: center;
 			font-size: 14px;
-			/* Diperbesar dari 12px */
 			line-height: 1.4;
 		}
 
 		.company-info b {
 			font-size: 15px;
-			/* Diperbesar dari 14px */
 		}
 
 		.info {
@@ -64,7 +61,6 @@
 			text-align: left;
 		}
 
-		/* Override untuk header table - hapus semua border dan styling */
 		.header-table,
 		.header-table td,
 		.header-table th {
@@ -96,23 +92,25 @@
 </head>
 
 <body>
-	{{-- HEADER DENGAN LOGO --}}
-	<table class="header header-table">
-		<tr>
-			<td style="width: 100px;">
-				<img src="{{ public_path('logo.jpg') }}" class="logo">
-			</td>
-			<td class="company-info">
-				<b>PT ALPHA PUTRA SINERGI</b><br>
-				Jl. Rajawali Selatan Raya Rukan Multi Guna Kemayoran Blok C No. 2M, Pademangan -<br>
-				Jakarta 14410 <br>
-				Tlp: (021) 38880711 • Whatsapp 0821-1839-0606<br>
-				Email : admin@alphaputrasinergi.com | Website: www.alphaputrasinergi.com
-
-				</div>
-		</tr>
-	</table>
-	<hr>
+	<div class="header" style="margin-bottom: 0; padding-bottom: 5px;">
+		<table style="width: 100%; border-collapse: collapse;">
+			<tr>
+				<td style="width: 120px; border: none; vertical-align: top;">
+					<img src="{{ public_path('images/logo-ibf.jpg') }}" alt="Logo" style="width: 120px;">
+				</td>
+				<td style="border: none; text-align: center; vertical-align: middle;">
+					<div style="font-size: 36px; font-weight: bold; line-height: 1;">CV. INTI BINTANG FORTUNA</div>
+					<div style="font-size: 20px; font-weight: bold; line-height: 1;">Pendingin & Tata Udara - Civil -
+						Electrical</div>
+					<div style="font-size: 12px; line-height: 1.2;">Jl. Raja Indra Kel. Labuhan Dalam Kec. Tanjung
+						Senang - Bandar Lampung Kode Pos : 35141</div>
+					<div style="font-size: 12px; line-height: 1.2;">No. Telp : 0821-8416-2241 E-mail :
+						cvintibintangfortuna@gmail.com</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div style="border-bottom: 4px solid #f0c420; margin-bottom: 20px;"></div>
 	<br>
 	<h1 style="text-align: center">INVOICE</h1>
 	<br><br>
@@ -121,10 +119,6 @@
 			<div>
 				<strong>Tanggal :</strong>
 				{{ \Illuminate\Support\Carbon::parse($transaksi->tanggal)->format('d/m/Y') }}
-			</div>
-			<div>
-				{{-- <strong>Kepada :</strong> {{ $transaksi->toko->nama_konsumen }}<br>{{ $transaksi->toko->alamat ??
-				'' }} --}}
 			</div>
 			<div>
 				<strong>No. Invoice :</strong>
@@ -145,7 +139,7 @@
 		<tbody>
 			@foreach($transaksi->transaksiProdukDetails as $detail)
 				<tr>
-					<td>{{ $detail->sku }} {{ $detail->nama_unit }}</td>
+					<td>{{ $detail->sku }} {{ $detail->unitProduk->nama_unit }}</td>
 					<td>{{ $detail->jumlah_keluar }}</td>
 					<td>Rp{{ number_format($detail->harga_jual, 0, ',', '.') }}</td>
 					<td>Rp{{ number_format($detail->harga_jual * $detail->jumlah_keluar, 0, ',', '.') }}</td>
@@ -154,11 +148,9 @@
 		</tbody>
 		<tfoot>
 			<tr>
-				{{-- colspan 3: nama barang, qty, harga satuan --}}
 				<td colspan="3" style="text-align: right; border-top:2px solid #333; padding-top:8px;">
 					<strong>TOTAL</strong>
 				</td>
-				{{-- kolom subtotal --}}
 				<td style="border-top:2px solid #333; padding-top:8px;">
 					<strong>
 						Rp{{ number_format($transaksi->transaksiProdukDetails->sum(fn($d) => $d->harga_jual * $d->jumlah_keluar), 0, ',', '.') }}
@@ -171,7 +163,7 @@
 
 	<div class="footer">
 		<div><strong>Hormat Kami,</strong></div>
-		<img style="width: 17%" src="{{ public_path('stampel-aps.jpg') }}">
+		<img style="width: 17%" src="{{ public_path('images/logo-ibf.jpg') }}">
 		<br>
 		<br>
 		<br>
@@ -181,8 +173,8 @@
 			<strong>Keterangan:</strong><br>
 			<strong>Rekening Transfer</strong><br>
 
-			<p style="color: red">a.n Alpha Putra Sinergi</p>
-			<p style="color: red">Bank Mandiri 101.00199.0000.8</p>
+			<p style="color: red">a.n CV Inti Bintang Fortuna</p>
+			<p style="color: red">Bank Panin 5602308115</p>
 
 		</div>
 	</div>
