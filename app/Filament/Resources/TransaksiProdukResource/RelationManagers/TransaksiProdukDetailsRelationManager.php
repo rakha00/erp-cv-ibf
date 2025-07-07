@@ -140,6 +140,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->getStateUsing(fn($record) => $record->unitProduk->harga_modal * $record->jumlah_keluar)
                     ->summarize(
                         Summarizer::make()
+                            ->label('Total Harga Modal')
                             ->numeric()
                             ->prefix('Rp ')
                             ->using(
@@ -155,6 +156,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->getStateUsing(fn($record) => $record->harga_jual * $record->jumlah_keluar)
                     ->summarize(
                         Summarizer::make()
+                            ->label('Total Harga Jual')
                             ->numeric()
                             ->prefix('Rp ')
                             ->using(fn(QueryBuilder $query): float => $query->sum(DB::raw('transaksi_produk_details.harga_jual * transaksi_produk_details.jumlah_keluar')))
@@ -168,6 +170,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->getStateUsing(fn($record) => ($record->harga_jual - $record->unitProduk->harga_modal) * $record->jumlah_keluar)
                     ->summarize(
                         Summarizer::make()
+                            ->label('Keuntungan')
                             ->numeric()
                             ->prefix('Rp ')
                             ->using(

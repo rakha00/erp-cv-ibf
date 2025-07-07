@@ -101,18 +101,18 @@ class TransaksiProdukResource extends Resource
                     ->prefix('Rp ')
                     ->numeric()
                     ->getStateUsing(function (TransaksiProduk $record) {
-                        return $record->transaksiProdukDetails->sum(function ($detail) {
-                            return $detail->harga_jual * $detail->jumlah_keluar;
-                        });
+                        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
+                            return $carry + ($detail->harga_jual * $detail->jumlah_keluar);
+                        }, 0);
                     }),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
                     ->getStateUsing(function (TransaksiProduk $record) {
-                        return $record->transaksiProdukDetails->sum(function ($detail) {
-                            return ($detail->harga_jual - $detail->unitProduk->harga_modal) * $detail->jumlah_keluar;
-                        });
+                        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
+                            return $carry + ($detail->harga_jual - $detail->unitProduk->harga_modal) * $detail->jumlah_keluar;
+                        }, 0);
                     }),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
