@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'Manajemen Produk',
+                'Manajemen Aset',
                 'Transaksi',
                 'Reminder',
                 'Master Data',
