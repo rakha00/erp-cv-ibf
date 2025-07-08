@@ -64,6 +64,8 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     }),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
+                    ->disabled()
+                    ->dehydrated()
                     ->required(),
                 Forms\Components\TextInput::make('jumlah_barang_masuk')
                     ->label('Jumlah Barang Masuk')
@@ -80,6 +82,8 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
                     ->live(true)
+                    ->disabled()
+                    ->dehydrated()
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                         $jumlahBarangMasuk = (int) $get('jumlah_barang_masuk') ?? 0;
                         $hargaModal = (float) str_replace(',', '', $state);
