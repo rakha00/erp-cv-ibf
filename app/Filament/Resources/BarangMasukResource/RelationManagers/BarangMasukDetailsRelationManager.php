@@ -108,6 +108,9 @@ class BarangMasukDetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('unitProduk.sku')
                     ->label('SKU')
                     ->sortable()
+                    ->state(function ($record) {
+                        return $record->unitProduk()->withTrashed()->first()?->sku ?? '-';
+                    })
                     ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
                     ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('nama_unit')
