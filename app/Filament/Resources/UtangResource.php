@@ -11,6 +11,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,45 +41,50 @@ class UtangResource extends Resource
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn(Set $set, $state) => self::updateBarangMasukDetails($set, $state)),
-
+                    ->afterStateUpdated(fn(Set $set, $state, ?Utang $record) => self::updateBarangMasukDetails($set, $state, $record)),
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->required()
                     ->stripCharacters(',')
                     ->prefix('Rp ')
-                    ->readOnly(),
-
+                    ->disabled()
+                    ->dehydrated()
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\TextInput::make('nama_principle')
                     ->label('Nama Principle')
-                    ->readOnly()
-                    ->dehydrated(false)
+                    ->disabled()
+                    ->dehydrated()
                     ->formatStateUsing(fn($state, $record) => $record?->barangMasuk?->principleSubdealer?->nama ?? '-'),
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
                     ->required(),
-
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
                     ->numeric()
                     ->prefix('Rp')
-                    ->default(0)
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Set $set, Get $get, $state, $record = null) {
-                        $sudahDibayarLama = $record?->sudah_dibayar ?? 0;
-                        $pembayaranBaru = (float) ($state ?? 0);
+                        $sudahDibayarLama = (float) str_replace(',', '', $record?->sudah_dibayar ?? '0');
+                        $pembayaranBaru = (float) str_replace(',', '', $state ?? '0');
                         $totalBaru = $sudahDibayarLama + $pembayaranBaru;
-                        $set('sudah_dibayar', $totalBaru);
-                    }),
-
+                        $set('sudah_dibayar', number_format($totalBaru, 0, '.', ','));
+                        $set('pembayaran_baru', number_format($pembayaranBaru, 0, '.', ','));
+                    })
+                    ->dehydrateStateUsing(function ($state) {
+                        if (!$state)
+                            return null;
+                        return (float) str_replace(',', '', $state);
+                    })
+                    ->default(null),
                 Forms\Components\TextInput::make('sudah_dibayar')
                     ->label('Sudah Dibayar')
-                    ->readOnly()
-                    ->numeric()
-                    ->prefix('Rp')
+                    ->disabled()
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn($state, $record) => $record?->sudah_dibayar ?? 0),
-
+                    ->dehydrated()
+                    ->prefix('Rp')
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\FileUpload::make('foto')
                     ->label('Foto Bukti')
                     ->multiple()
@@ -87,7 +93,6 @@ class UtangResource extends Resource
                     ->directory('utang-foto')
                     ->openable()
                     ->downloadable(),
-
                 Forms\Components\Select::make('status_pembayaran')
                     ->options([
                         'belum lunas' => 'Belum Lunas',
@@ -95,7 +100,6 @@ class UtangResource extends Resource
                         'sudah lunas' => 'Sudah Lunas',
                     ])
                     ->required(),
-
                 Forms\Components\Textarea::make('remarks')
                     ->columnSpanFull(),
             ]);
@@ -125,10 +129,12 @@ class UtangResource extends Resource
     /**
      * Update form fields based on the selected BarangMasuk.
      */
-    private static function updateBarangMasukDetails(Set $set, $state): void
+    private static function updateBarangMasukDetails(Set $set, $state, ?Utang $record = null): void
     {
         if (!$state) {
-            $set('total_harga_modal', '');
+            if (!$record) {
+                $set('total_harga_modal', '');
+            }
             $set('nama_principle', '');
             return;
         }
@@ -139,9 +145,10 @@ class UtangResource extends Resource
             return;
         }
 
-        $totalHargaModal = self::calculateTotalHargaModal($barangMasuk);
-
-        $set('total_harga_modal', number_format($totalHargaModal, 0, ',', ','));
+        if (!$record) {
+            $totalHargaModal = self::calculateTotalHargaModal($barangMasuk);
+            $set('total_harga_modal', number_format($totalHargaModal, 0, '.', ','));
+        }
         $set('nama_principle', $barangMasuk->principleSubdealer->nama ?? '');
     }
 
