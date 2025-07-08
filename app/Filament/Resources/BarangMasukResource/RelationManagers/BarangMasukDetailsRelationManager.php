@@ -115,7 +115,22 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('nama_unit')
                     ->label('Nama Unit')
-                    ->sortable(),
+                    ->sortable()
+                    ->icon(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
+                            return null;
+                        }
+                        return 'heroicon-s-exclamation-circle';
+                    })
+                    ->color('warning')
+                    ->tooltip(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
+                            return null;
+                        }
+                        return "Nama unit saat ini: {$unitProduk->nama_unit}";
+                    }),
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')
                     ->label('Jumlah')
                     ->sortable(),
@@ -123,7 +138,22 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->icon(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                            return null;
+                        }
+                        return 'heroicon-s-exclamation-circle';
+                    })
+                    ->color('warning')
+                    ->tooltip(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                            return null;
+                        }
+                        return "Harga modal saat ini: Rp " . number_format($unitProduk->harga_modal, 0, ',', '.');
+                    }),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')

@@ -26,11 +26,18 @@ class TransaksiProdukSeeder extends Seeder
         ]);
 
         foreach ($products as $product) {
+            $jumlahKeluar = rand(1, 5);
+            $hargaJual = $product->harga_modal * 1.2;
+            $keuntungan = ($hargaJual - $product->harga_modal) * $jumlahKeluar;
+
             TransaksiProdukDetail::create([
                 'transaksi_produk_id' => $transaksi->id,
                 'unit_produk_id' => $product->id,
-                'harga_jual' => $product->harga_modal * 1.2, // 20% markup
-                'jumlah_keluar' => rand(1, 5),
+                'nama_unit' => $product->nama_unit,
+                'harga_jual' => $hargaJual,
+                'harga_modal' => $product->harga_modal,
+                'jumlah_keluar' => $jumlahKeluar,
+                'total_keuntungan' => $keuntungan,
             ]);
         }
     }
