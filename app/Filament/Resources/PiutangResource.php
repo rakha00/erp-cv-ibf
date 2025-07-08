@@ -9,6 +9,7 @@ use App\Models\TransaksiProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Get;
@@ -41,34 +42,44 @@ class PiutangResource extends Resource
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn(Set $set, $state) => self::updateTransaksiProdukDetails($set, $state)),
+                    ->afterStateUpdated(fn(Set $set, $state, ?Piutang $record) => self::updateTransaksiProdukDetails($set, $state, $record)),
 
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->required()
                     ->prefix('Rp ')
-                    ->readOnly(),
+                    ->disabled()
+                    ->stripCharacters(',')
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
                     ->numeric()
                     ->prefix('Rp')
-                    ->default(0)
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Set $set, Get $get, $state, $record = null) {
-                        $sudahDibayarLama = $record?->sudah_dibayar ?? 0;
-                        $pembayaranBaru = (float) ($state ?? 0);
+                        $sudahDibayarLama = (float) str_replace(',', '', $record?->sudah_dibayar ?? '0');
+                        $pembayaranBaru = (float) str_replace(',', '', $state ?? '0');
                         $totalBaru = $sudahDibayarLama + $pembayaranBaru;
-                        $set('sudah_dibayar', $totalBaru);
-                    }),
+                        $set('sudah_dibayar', number_format($totalBaru, 0, '.', ','));
+                        $set('pembayaran_baru', number_format($pembayaranBaru, 0, '.', ','));
+                    })
+                    ->dehydrateStateUsing(function ($state) {
+                        if (!$state)
+                            return null;
+                        return (float) str_replace(',', '', $state);
+                    })
+                    ->default(null),
 
                 Forms\Components\TextInput::make('sudah_dibayar')
                     ->label('Sudah Dibayar')
-                    ->readOnly()
-                    ->numeric()
+                    ->disabled()
+                    ->dehydrated()
                     ->prefix('Rp')
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn($state, $record) => $record?->sudah_dibayar ?? 0),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
@@ -96,10 +107,12 @@ class PiutangResource extends Resource
             ]);
     }
 
-    private static function updateTransaksiProdukDetails(Set $set, $state): void
+    private static function updateTransaksiProdukDetails(Set $set, $state, ?Piutang $record = null): void
     {
         if (!$state) {
-            $set('total_harga_modal', '');
+            if (!$record) {
+                $set('total_harga_modal', '');
+            }
             return;
         }
 
@@ -109,9 +122,10 @@ class PiutangResource extends Resource
             return;
         }
 
-        $totalHargaJual = self::calculateTotalHargaJual($transaksiProduk);
-
-        $set('total_harga_modal', $totalHargaJual);
+        if (!$record) {
+            $totalHargaJual = self::calculateTotalHargaJual($transaksiProduk);
+            $set('total_harga_modal', number_format($totalHargaJual, 0, '.', ','));
+        }
     }
 
     private static function calculateTotalHargaJual(TransaksiProduk $transaksiProduk): float
@@ -146,24 +160,21 @@ class PiutangResource extends Resource
                     ->formatStateUsing(fn($state) => ucwords($state)),
                 Tables\Columns\TextColumn::make('sudah_dibayar')
                     ->numeric()
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
-                    ->numeric(
-                        decimalPlaces: 0,
-                        decimalSeparator: ',',
-                        thousandsSeparator: '.'
-                    )
+                    ->numeric()
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('sisa_piutang')
                     ->label('Sisa Piutang')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->state(function ($record) {
-                        $totalPiutang = (float) $record->total_harga_modal;
-                        $sudahDibayar = (float) $record->sudah_dibayar;
-                        return $totalPiutang - $sudahDibayar;
+                    ->state(function ($record): string {
+                        $totalPiutang = (float) str_replace(',', '', $record->total_harga_modal ?? '0');
+                        $sudahDibayar = (float) ($record->sudah_dibayar ?? '0');
+                        return number_format($totalPiutang - $sudahDibayar, 0, '.', ',');
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('remarks')
