@@ -177,16 +177,14 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->sortable()
                     ->icon(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || $unitProduk->trashed() || $unitProduk->nama_unit === $record->nama_unit) {
+                        if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
                             return null;
                         }
                         return 'heroicon-s-exclamation-circle';
                     })
                     ->color(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if ($unitProduk?->trashed()) {
-                            return 'danger';
-                        }
+
                         if (!$unitProduk || $unitProduk->nama_unit !== $record->nama_unit) {
                             return 'warning';
                         }
@@ -212,16 +210,14 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->sortable()
                     ->icon(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || $unitProduk->trashed() || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
                             return null;
                         }
                         return 'heroicon-s-exclamation-circle';
                     })
                     ->color(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if ($unitProduk?->trashed()) {
-                            return 'danger';
-                        }
+
                         if (!$unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
                             return 'warning';
                         }
