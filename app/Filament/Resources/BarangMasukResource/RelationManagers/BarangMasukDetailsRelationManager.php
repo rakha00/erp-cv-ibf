@@ -25,49 +25,75 @@ class BarangMasukDetailsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
-                    ->options(UnitProduk::withTrashed()->pluck('sku', 'id'))
+                    ->options(function (callable $get) {
+                        $selectedUnitId = $get('unit_produk_id');
+                        $units = UnitProduk::all();
+
+                        if ($selectedUnitId) {
+                            $selectedUnit = UnitProduk::withTrashed()->find($selectedUnitId);
+                            if ($selectedUnit && $selectedUnit->trashed() && !$units->contains('id', $selectedUnitId)) {
+                                $units->add($selectedUnit);
+                            }
+                        }
+
+                        return $units->mapWithKeys(function ($unit) {
+                            $label = $unit->sku;
+                            if ($unit->trashed()) {
+                                $label .= ' (Data telah dihapus)';
+                            }
+                            return [$unit->id => $label];
+                        });
+                    })
                     ->searchable()
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if ($unit = UnitProduk::withTrashed()->find($state)) {
-                            $set('harga_modal', $unit->harga_modal);
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        $unit = UnitProduk::withTrashed()->find($state);
+                        if ($unit) {
                             $set('nama_unit', $unit->nama_unit);
-                        }
-                    })
-                    ->afterStateHydrated(function ($state, callable $set) {
-                        if ($unit = UnitProduk::withTrashed()->find($state)) {
-                            $set('nama_unit', $unit->nama_unit);
+                            $set('harga_modal', number_format($unit->harga_modal, 0, ',', ','));
+                            $set('total_harga_modal', $unit->harga_modal);
+
+                            $jumlah = (int) $get('jumlah_barang_masuk');
+                            $set('total_harga_modal', number_format($unit->harga_modal * $jumlah, 0, ',', ','));
+                        } else {
+                            $set('nama_unit', null);
+                            $set('harga_modal', 0);
+                            $set('total_harga_modal', 0);
                         }
                     }),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
-                    ->disabled()
-                    ->dehydrated(false),
+                    ->required(),
                 Forms\Components\TextInput::make('jumlah_barang_masuk')
                     ->label('Jumlah Barang Masuk')
                     ->numeric()
                     ->live(true)
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        $hargaModal = $get('harga_modal') ?? 0;
+                        $hargaModal = (float) str_replace(',', '', $get('harga_modal')) ?? 0;
                         $set('total_harga_modal', number_format($state * $hargaModal, 0, ',', ','));
                     })
                     ->required(),
                 Forms\Components\TextInput::make('harga_modal')
                     ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
-                    ->numeric()
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
                     ->live(true)
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                        $jumlahBarangMasuk = $get('jumlah_barang_masuk') ?? 0;
-                        $set('total_harga_modal', number_format($state * $jumlahBarangMasuk, 0, ',', ','));
+                        $jumlahBarangMasuk = (int) $get('jumlah_barang_masuk') ?? 0;
+                        $hargaModal = (float) str_replace(',', '', $state);
+                        $set('total_harga_modal', number_format($jumlahBarangMasuk * $hargaModal, 0, ',', ','));
                     })
                     ->required(),
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
-                    ->disabled()
                     ->prefix('Rp ')
-                    ->required(),
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
+                    ->required()
+                    ->disabled()
+                    ->dehydrated(true),
                 Forms\Components\Textarea::make('remarks')
                     ->label('Remarks')
                     ->columnSpanFull(),
@@ -82,19 +108,11 @@ class BarangMasukDetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('unitProduk.sku')
                     ->label('SKU')
                     ->sortable()
-                    ->getStateUsing(function ($record) {
-                        return $record->unitProduk()->withTrashed()->first()?->sku ?? '-';
-                    })
                     ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
                     ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
-                Tables\Columns\TextColumn::make('unitProduk.nama_unit')
+                Tables\Columns\TextColumn::make('nama_unit')
                     ->label('Nama Unit')
-                    ->sortable()
-                    ->getStateUsing(function ($record) {
-                        return $record->unitProduk()->withTrashed()->first()?->nama_unit ?? '-';
-                    })
-                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
-                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('jumlah_barang_masuk')
                     ->label('Jumlah')
                     ->sortable(),
@@ -107,15 +125,12 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->state(function ($record): float {
-                        return $record->harga_modal * $record->jumlah_barang_masuk;
-                    })
                     ->summarize(
                         Summarizer::make()
                             ->label('Total Harga Modal')
                             ->numeric()
                             ->prefix('Rp ')
-                            ->using(fn(QueryBuilder $query): float => $query->sum(DB::raw('harga_modal * jumlah_barang_masuk')))
+                            ->using(fn(QueryBuilder $query): float => $query->sum('total_harga_modal'))
                     ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')

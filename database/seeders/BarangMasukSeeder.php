@@ -28,11 +28,14 @@ class BarangMasukSeeder extends Seeder
         ]);
 
         foreach ($products as $product) {
+            $jumlah_barang = rand(5, 20);
             BarangMasukDetail::create([
                 'barang_masuk_id' => $barangMasuk->id,
                 'unit_produk_id' => $product->id,
+                'nama_unit' => $product->nama_unit,
                 'harga_modal' => $product->harga_modal,
-                'jumlah_barang_masuk' => rand(5, 20),
+                'jumlah_barang_masuk' => $jumlah_barang,
+                'total_harga_modal' => $jumlah_barang * $product->harga_modal,
             ]);
         }
     }

@@ -14,8 +14,10 @@ class BarangMasukDetail extends Model
     protected $fillable = [
         "barang_masuk_id",
         "unit_produk_id",
+        "nama_unit",
         "harga_modal",
         "jumlah_barang_masuk",
+        "total_harga_modal",
         "remarks",
     ];
 
