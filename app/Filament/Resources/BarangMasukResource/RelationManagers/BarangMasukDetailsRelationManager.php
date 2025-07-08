@@ -123,7 +123,15 @@ class BarangMasukDetailsRelationManager extends RelationManager
                         }
                         return 'heroicon-s-exclamation-circle';
                     })
-                    ->color('warning')
+                    ->color(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+
+                        if ($unitProduk->nama_unit !== $record->nama_unit) {
+                            return 'warning';
+                        }
+
+                        return null;
+                    })
                     ->tooltip(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
                         if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
@@ -146,7 +154,14 @@ class BarangMasukDetailsRelationManager extends RelationManager
                         }
                         return 'heroicon-s-exclamation-circle';
                     })
-                    ->color('warning')
+                    ->color(function ($record) {
+                        $unitProduk = $record->unitProduk()->withTrashed()->first();
+
+                        if (!$unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
+                            return 'warning';
+                        }
+                        return null;
+                    })
                     ->tooltip(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
                         if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
