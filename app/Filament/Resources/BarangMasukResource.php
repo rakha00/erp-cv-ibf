@@ -95,6 +95,16 @@ class BarangMasukResource extends Resource
                     ->label('Tanggal')
                     ->date()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('total_harga_modal')
+                    ->label('Total Harga Modal')
+                    ->prefix('Rp ')
+                    ->state(function (BarangMasuk $record): string {
+                        $total = $record->barangMasukDetails->reduce(function ($carry, $detail) {
+                            return $carry + ($detail->harga_modal * $detail->jumlah_barang_masuk);
+                        }, 0);
+                        return number_format($total, 0, ',', ',');
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -110,6 +120,7 @@ class BarangMasukResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('tanggal', 'desc')
+            ->modifyQueryUsing(fn(Builder $query) => $query->with('barangMasukDetails'))
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')

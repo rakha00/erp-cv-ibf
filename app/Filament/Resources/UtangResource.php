@@ -54,7 +54,7 @@ class UtangResource extends Resource
                     ->label('Nama Principle')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn($state, $record) => $record?->barangMasuk?->principleSubdealer?->nama ?? '-'),
+                    ->formatStateUsing(fn($state, $record) => $record?->barangMasuk?->principleSubdealer?->nama ?? null),
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
                     ->required(),
@@ -219,7 +219,35 @@ class UtangResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('status_pembayaran')
+                    ->options([
+                        'belum lunas' => 'Belum Lunas',
+                        'tercicil' => 'Tercicil',
+                        'sudah lunas' => 'Sudah Lunas',
+                    ])
+                    ->label('Status Pembayaran'),
+                Tables\Filters\Filter::make('jatuh_tempo')
+                    ->form([
+                        Forms\Components\DatePicker::make('jatuh_tempo_from')
+                            ->label('Jatuh Tempo From'),
+                        Forms\Components\DatePicker::make('jatuh_tempo_until')
+                            ->label('Jatuh Tempo Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['jatuh_tempo_from'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '>=', $date),
+                            )
+                            ->when(
+                                $data['jatuh_tempo_until'],
+                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '<=', $date),
+                            );
+                    })
+                    ->label('Jatuh Tempo'),
+                Tables\Filters\SelectFilter::make('principleSubdealer')
+                    ->relationship('barangMasuk.principleSubdealer', 'nama')
+                    ->label('Principle/Subdealer'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
