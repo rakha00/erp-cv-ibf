@@ -10,8 +10,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use App\Exports\KaryawanExport;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class KaryawanResource extends Resource
@@ -195,6 +198,32 @@ class KaryawanResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ])
+            ->headerActions([
+                Action::make('exportExcel')
+                    ->label('Export All (Summary) to Excel')
+                    ->color('success')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function (Table $table) {
+                        $livewire = $table->getLivewire();
+                        $query = $livewire->getFilteredTableQuery();
+                        $resourceTitle = static::$pluralModelLabel;
+                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+                        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, false, $tahun, $bulan), 'karyawan_summary.xlsx');
+                    }),
+                Action::make('exportExcelWithDetails')
+                    ->label('Export All (Details) to Excel')
+                    ->color('info')
+                    ->icon('heroicon-o-document-text')
+                    ->action(function (Table $table) {
+                        $livewire = $table->getLivewire();
+                        $query = $livewire->getFilteredTableQuery();
+                        $resourceTitle = static::$pluralModelLabel;
+                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+                        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, true, $tahun, $bulan), 'karyawan_details.xlsx');
+                    })
             ]);
     }
 

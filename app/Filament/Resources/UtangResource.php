@@ -13,8 +13,11 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use App\Exports\UtangExport;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UtangResource extends Resource
@@ -256,6 +259,18 @@ class UtangResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ])
+            ->headerActions([
+                Action::make('exportExcel')
+                    ->label('Export to Excel')
+                    ->color('success')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function (Table $table) {
+                        $livewire = $table->getLivewire();
+                        $query = $livewire->getFilteredTableQuery();
+                        $resourceTitle = static::$pluralModelLabel;
+                        return \Maatwebsite\Excel\Facades\Excel::download(new UtangExport($query, $resourceTitle), 'utang.xlsx');
+                    })
             ]);
     }
 

@@ -10,8 +10,11 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use App\Exports\BarangMasukExport;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 
@@ -184,6 +187,28 @@ class BarangMasukResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ])
+            ->headerActions([
+                Action::make('exportExcel')
+                    ->label('Export All (Summary) to Excel')
+                    ->color('success')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function (Table $table) {
+                        $livewire = $table->getLivewire();
+                        $query = $livewire->getFilteredTableQuery();
+                        $resourceTitle = static::$pluralModelLabel;
+                        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, false), 'barang_masuk_summary.xlsx');
+                    }),
+                Action::make('exportExcelWithDetails')
+                    ->label('Export All (Details) to Excel')
+                    ->color('info')
+                    ->icon('heroicon-o-document-text')
+                    ->action(function (Table $table) {
+                        $livewire = $table->getLivewire();
+                        $query = $livewire->getFilteredTableQuery();
+                        $resourceTitle = static::$pluralModelLabel;
+                        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, true), 'barang_masuk_details.xlsx');
+                    })
             ]);
     }
 
