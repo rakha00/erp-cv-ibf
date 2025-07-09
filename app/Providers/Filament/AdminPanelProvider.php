@@ -39,6 +39,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
+                \App\Filament\Widgets\UtangList::class,
+                \App\Filament\Widgets\PiutangList::class,
             ])
             ->navigationGroups([
                 'Manajemen Produk',
