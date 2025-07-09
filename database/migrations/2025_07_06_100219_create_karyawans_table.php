@@ -12,11 +12,13 @@ return new class extends Migration {
     {
         Schema::create('karyawans', function (Blueprint $table) {
             $table->id();
+            $table->string('nik')->unique();
             $table->string('nama');
             $table->string('jabatan');
+            $table->string('status');
             $table->string('no_hp');
             $table->text('alamat');
-            $table->decimal('gaji_pokok', 15, 2);
+            $table->decimal('gaji_pokok', 15, 0);
             $table->text('remarks')->nullable();
             $table->timestamps();
             $table->softDeletes();

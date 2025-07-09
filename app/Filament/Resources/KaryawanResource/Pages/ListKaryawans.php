@@ -25,15 +25,6 @@ class ListKaryawans extends ListRecords
         $tahun = $this->tableFilters['tahun']['value'] ?? date('Y');
         $bulan = $this->tableFilters['bulan']['value'] ?? date('n');
 
-        return $query->withSum(
-            ['penghasilanKaryawanDetails' => fn ($q) => $q->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)],
-            'lembur'
-        )->withSum(
-            ['penghasilanKaryawanDetails' => fn ($q) => $q->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)],
-            'bonus'
-        )->withSum(
-            ['penghasilanKaryawanDetails' => fn ($q) => $q->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)],
-            'kasbon'
-        );
+        return $query->with(['penghasilanKaryawanDetails' => fn($q) => $q->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)]);
     }
 }

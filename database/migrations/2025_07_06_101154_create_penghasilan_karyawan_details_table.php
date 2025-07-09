@@ -13,9 +13,13 @@ return new class extends Migration {
         Schema::create('penghasilan_karyawan_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('karyawan_id')->constrained()->onDelete('restrict');
-            $table->decimal('kasbon', 15, 0)->default(0);
-            $table->decimal('lembur', 15, 0)->default(0);
-            $table->decimal('bonus', 15, 0)->default(0);
+            $table->decimal('bonus_target', 15, 0)->default(0);
+            $table->decimal('uang_makan', 15, 0)->default(0);
+            $table->decimal('tunjangan_transportasi', 15, 0)->default(0);
+            $table->decimal('thr', 15, 0)->default(0);
+            $table->decimal('keterlambatan', 15, 0)->default(0);
+            $table->decimal('tanpa_keterangan', 15, 0)->default(0);
+            $table->decimal('pinjaman', 15, 0)->default(0);
             $table->date('tanggal');
             $table->string('remarks')->nullable();
             $table->timestamps();

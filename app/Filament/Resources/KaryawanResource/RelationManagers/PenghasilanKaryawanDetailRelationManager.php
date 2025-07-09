@@ -19,27 +19,61 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('kasbon')
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->default(0)
-                    ->maxLength(50),
-                Forms\Components\TextInput::make('lembur')
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->default(0)
-                    ->maxLength(50),
-                Forms\Components\TextInput::make('bonus')
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->default(0)
-                    ->maxLength(50),
+                Forms\Components\Fieldset::make('Penerimaan')
+                    ->schema([
+                        Forms\Components\TextInput::make('bonus_target')
+                            ->label('Bonus Target')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('uang_makan')
+                            ->label('Uang Makan')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('tunjangan_transportasi')
+                            ->label('Tunjangan Transportasi')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('thr')
+                            ->label('THR')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                    ])->columns(2),
+                Forms\Components\Fieldset::make('Potongan')
+                    ->schema([
+                        Forms\Components\TextInput::make('keterlambatan')
+                            ->label('Keterlambatan')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('tanpa_keterangan')
+                            ->label('Tanpa Keterangan')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('pinjaman')
+                            ->label('Pinjaman')
+                            ->mask(RawJs::make('$money($input)'))
+                            ->stripCharacters(',')
+                            ->numeric()
+                            ->prefix('Rp ')
+                            ->maxLength(50),
+                    ])->columns(2),
                 Forms\Components\DatePicker::make('tanggal')
                     ->required(),
                 Forms\Components\Textarea::make('remarks')
@@ -54,18 +88,44 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('tanggal')
                     ->date(),
-                Tables\Columns\TextColumn::make('kasbon')
+                Tables\Columns\TextColumn::make('bonus_target')
+                    ->label('Bonus Target')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Kasbon')->money('IDR')),
-                Tables\Columns\TextColumn::make('lembur')
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Bonus Target')->money('IDR')),
+                Tables\Columns\TextColumn::make('uang_makan')
+                    ->label('Uang Makan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Lembur')->money('IDR')),
-                Tables\Columns\TextColumn::make('bonus')
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Uang Makan')->money('IDR')),
+                Tables\Columns\TextColumn::make('tunjangan_transportasi')
+                    ->label('Tunjangan Transportasi')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Bonus')->money('IDR')),
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Tunjangan Transportasi')->money('IDR')),
+                Tables\Columns\TextColumn::make('thr')
+                    ->label('THR')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total THR')->money('IDR')),
+                Tables\Columns\TextColumn::make('keterlambatan')
+                    ->label('Keterlambatan')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Keterlambatan')->money('IDR')),
+                Tables\Columns\TextColumn::make('tanpa_keterangan')
+                    ->label('Tanpa Keterangan')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Tanpa Keterangan')->money('IDR')),
+                Tables\Columns\TextColumn::make('pinjaman')
+                    ->label('Pinjaman')
+                    ->prefix('Rp ')
+                    ->numeric()
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Pinjaman')->money('IDR')),
+                Tables\Columns\TextColumn::make('remarks')
+                    ->label('Remarks')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
@@ -75,9 +135,9 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                         range(date('Y') - 5, date('Y') + 5)
                     ))
                     ->default(date('Y'))
-                    ->query(fn (Builder $query, array $data) => $query->when(
+                    ->query(fn(Builder $query, array $data) => $query->when(
                         $data['value'],
-                        fn (Builder $query, $value) => $query->whereYear('tanggal', $value)
+                        fn(Builder $query, $value) => $query->whereYear('tanggal', $value)
                     )),
 
                 Tables\Filters\SelectFilter::make('bulan')
@@ -97,9 +157,9 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                         12 => 'Desember',
                     ])
                     ->default(date('n'))
-                    ->query(fn (Builder $query, array $data) => $query->when(
+                    ->query(fn(Builder $query, array $data) => $query->when(
                         $data['value'],
-                        fn (Builder $query, $value) => $query->whereMonth('tanggal', $value)
+                        fn(Builder $query, $value) => $query->whereMonth('tanggal', $value)
                     )),
             ])
             ->headerActions([

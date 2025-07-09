@@ -13,9 +13,13 @@ class PenghasilanKaryawanDetail extends Model
 
     protected $fillable = [
         'karyawan_id',
-        'kasbon',
-        'lembur',
-        'bonus',
+        'bonus_target',
+        'uang_makan',
+        'tunjangan_transportasi',
+        'thr',
+        'keterlambatan',
+        'tanpa_keterangan',
+        'pinjaman',
         'tanggal',
         'remarks',
     ];

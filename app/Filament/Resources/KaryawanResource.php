@@ -32,6 +32,9 @@ class KaryawanResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('nik')
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('nama')
                     ->required()
                     ->maxLength(255),
@@ -42,6 +45,13 @@ class KaryawanResource extends Resource
                         'Sales' => 'Sales',
                         'Helper' => 'Helper',
                         'Gudang' => 'Gudang',
+                    ])
+                    ->required(),
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'karyawan tetap' => 'karyawan tetap',
+                        'karyawan magang' => 'karyawan magang',
+                        'karyawan freelance' => 'karyawan freelance',
                     ])
                     ->required(),
                 Forms\Components\TextInput::make('no_hp')
@@ -68,9 +78,14 @@ class KaryawanResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('nik')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('nama')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('jabatan')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('status')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('no_hp')
@@ -81,41 +96,48 @@ class KaryawanResource extends Resource
                     ->numeric()
                     ->prefix('Rp ')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('lembur')
+                Tables\Columns\TextColumn::make('total_penerimaan')
+                    ->label('Total Penerimaan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('lembur')),
-                Tables\Columns\TextColumn::make('bonus')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('bonus')),
-                Tables\Columns\TextColumn::make('kasbon')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->sortable()
-                    ->getStateUsing(fn ($record) => $record->penghasilanKaryawanDetails->sum('kasbon')),
-                Tables\Columns\TextColumn::make('total_gaji')
-                    ->label('Total Gaji')
-                    ->numeric()
-                    ->prefix('Rp ')
-                    ->state(function (Karyawan $record) {
-                        $lembur = $record->penghasilanKaryawanDetails->sum('lembur');
-                        $bonus = $record->penghasilanKaryawanDetails->sum('bonus');
-                        return $record->gaji_pokok + $lembur + $bonus;
+                    ->state(function (Karyawan $record, $livewire) {
+                        $penghasilan = $record->penghasilanKaryawanDetails()
+                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
+                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
+                            ->first();
+
+                        return $record->gaji_pokok + ($penghasilan->bonus_target ?? 0) + ($penghasilan->uang_makan ?? 0) + ($penghasilan->tunjangan_transportasi ?? 0) + ($penghasilan->thr ?? 0);
                     }),
-                Tables\Columns\TextColumn::make('gaji_diterima')
-                    ->label('Gaji Diterima')
+                Tables\Columns\TextColumn::make('total_potongan')
+                    ->label('Total Potongan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(function (Karyawan $record) {
-                        $lembur = $record->penghasilanKaryawanDetails->sum('lembur');
-                        $bonus = $record->penghasilanKaryawanDetails->sum('bonus');
-                        $kasbon = $record->penghasilanKaryawanDetails->sum('kasbon');
-                        $totalGaji = $record->gaji_pokok + $lembur + $bonus;
-                        return $totalGaji - $kasbon;
+                    ->state(function (Karyawan $record, $livewire) {
+                        $penghasilan = $record->penghasilanKaryawanDetails()
+                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
+                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
+                            ->first();
+
+                        return ($penghasilan->keterlambatan ?? 0) + ($penghasilan->tanpa_keterangan ?? 0) + ($penghasilan->pinjaman ?? 0);
                     }),
+                Tables\Columns\TextColumn::make('pendapatan_bersih')
+                    ->label('Pendapatan Bersih')
+                    ->numeric()
+                    ->prefix('Rp ')
+                    ->state(function (Karyawan $record, $livewire) {
+                        $penghasilan = $record->penghasilanKaryawanDetails()
+                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
+                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
+                            ->first();
+
+                        $totalPenerimaan = $record->gaji_pokok + ($penghasilan->bonus_target ?? 0) + ($penghasilan->uang_makan ?? 0) + ($penghasilan->tunjangan_transportasi ?? 0) + ($penghasilan->thr ?? 0);
+                        $totalPotongan = ($penghasilan->keterlambatan ?? 0) + ($penghasilan->tanpa_keterangan ?? 0) + ($penghasilan->pinjaman ?? 0);
+
+                        return $totalPenerimaan - $totalPotongan;
+                    }),
+                Tables\Columns\TextColumn::make('remarks')
+                    ->label('Remarks')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -137,7 +159,7 @@ class KaryawanResource extends Resource
                         range(date('Y') - 0, date('Y') + 5)
                     ))
                     ->default(date('Y'))
-                    ->query(fn (Builder $query, array $data) => $query),
+                    ->query(fn(Builder $query, array $data) => $query),
 
                 \Filament\Tables\Filters\SelectFilter::make('bulan')
                     ->label('Filter Bulan')
@@ -156,13 +178,13 @@ class KaryawanResource extends Resource
                         12 => 'Desember',
                     ])
                     ->default(date('n'))
-                    ->query(fn (Builder $query, array $data) => $query),
+                    ->query(fn(Builder $query, array $data) => $query),
             ])
             ->actions([
                 Tables\Actions\Action::make('downloadSlipGaji')
                     ->label('Slip Gaji')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn (Karyawan $record, $livewire) => route('karyawan.slip-gaji', [
+                    ->url(fn(Karyawan $record, $livewire) => route('karyawan.slip-gaji', [
                         'karyawan' => $record,
                         'tahun' => $livewire->tableFilters['tahun']['value'],
                         'bulan' => $livewire->tableFilters['bulan']['value'],
