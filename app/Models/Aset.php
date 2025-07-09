@@ -6,5 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Aset extends Model
 {
-    //
+    protected $table = "asets";
+
+    protected $fillable = [
+        "nama_aset",
+        "harga",
+        "jumlah_aset",
+    ];
 }
