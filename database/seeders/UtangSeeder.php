@@ -14,17 +14,42 @@ class UtangSeeder extends Seeder
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
-        $barangMasuk = BarangMasuk::with('barangMasukDetails')->first();
-        $totalModal = $barangMasuk->barangMasukDetails->sum(function ($detail) {
-            return $detail->harga_modal * $detail->jumlah_barang_masuk;
-        });
+        $barangMasuks = BarangMasuk::with('barangMasukDetails')->get();
+        $now = now();
 
-        Utang::create([
-            'barang_masuk_id' => $barangMasuk->id,
-            'jatuh_tempo' => Carbon::now()->addDays(30),
-            'total_harga_modal' => $totalModal,
-        ]);
+        if ($barangMasuks->isEmpty()) {
+            $this->command->warn('Skipping UtangSeeder: No BarangMasuks found. Please run BarangMasukSeeder first.');
+            return;
+        }
+
+        foreach ($barangMasuks as $barangMasuk) {
+            $totalModal = 0;
+            foreach ($barangMasuk->barangMasukDetails as $detail) {
+                $totalModal += $detail->total_harga_modal;
+            }
+
+            // Randomly set payment status
+            $statusPembayaran = ['belum lunas', 'tercicil', 'sudah lunas'][array_rand(['belum lunas', 'tercicil', 'sudah lunas'])];
+            $sudahDibayar = 0;
+
+            if ($statusPembayaran === 'sudah lunas') {
+                $sudahDibayar = $totalModal;
+            } elseif ($statusPembayaran === 'tercicil') {
+                $sudahDibayar = rand(1, (int) ($totalModal * 0.9)); // Pay some portion
+            }
+
+            Utang::create([
+                'barang_masuk_id' => $barangMasuk->id,
+                'jatuh_tempo' => $barangMasuk->tanggal->addDays(rand(30, 90)), // Due date 30-90 days after purchase
+                'status_pembayaran' => $statusPembayaran,
+                'sudah_dibayar' => $sudahDibayar,
+                'total_harga_modal' => $totalModal,
+                'remarks' => 'Pembayaran utang untuk barang masuk ' . $barangMasuk->nomor_barang_masuk,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
     }
 }

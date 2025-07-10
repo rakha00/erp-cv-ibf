@@ -18,6 +18,10 @@ class BarangMasuk extends Model
         'remarks',
     ];
 
+    protected $casts = [
+        'tanggal' => 'date',
+    ];
+
     public function principleSubdealer()
     {
         return $this->belongsTo(PrincipleSubdealer::class);

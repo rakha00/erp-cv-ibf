@@ -14,17 +14,42 @@ class PiutangSeeder extends Seeder
      *
      * @return void
      */
-    public function run()
+    public function run(): void
     {
-        $transaksiProduk = TransaksiProduk::with('transaksiProdukDetails')->first();
-        $totalJual = $transaksiProduk->transaksiProdukDetails->sum(function ($detail) {
-            return $detail->harga_jual * $detail->jumlah_keluar;
-        });
+        $transaksiProduks = TransaksiProduk::with('transaksiProdukDetails')->get();
+        $now = now();
 
-        Piutang::create([
-            'transaksi_produk_id' => $transaksiProduk->id,
-            'jatuh_tempo' => Carbon::now()->addDays(30),
-            'total_harga_modal' => $totalJual,
-        ]);
+        if ($transaksiProduks->isEmpty()) {
+            $this->command->warn('Skipping PiutangSeeder: No TransaksiProduks found. Please run TransaksiProdukSeeder first.');
+            return;
+        }
+
+        foreach ($transaksiProduks as $transaksiProduk) {
+            $totalJual = 0;
+            foreach ($transaksiProduk->transaksiProdukDetails as $detail) {
+                $totalJual += $detail->harga_jual * $detail->jumlah_keluar;
+            }
+
+            // Randomly set payment status
+            $statusPembayaran = ['belum lunas', 'tercicil', 'sudah lunas'][array_rand(['belum lunas', 'tercicil', 'sudah lunas'])];
+            $sudahDibayar = 0;
+
+            if ($statusPembayaran === 'sudah lunas') {
+                $sudahDibayar = $totalJual;
+            } elseif ($statusPembayaran === 'tercicil') {
+                $sudahDibayar = rand(1, (int) ($totalJual * 0.9)); // Pay some portion
+            }
+
+            Piutang::create([
+                'transaksi_produk_id' => $transaksiProduk->id,
+                'jatuh_tempo' => $transaksiProduk->tanggal->addDays(rand(30, 90)), // Due date 30-90 days after transaction
+                'status_pembayaran' => $statusPembayaran,
+                'sudah_dibayar' => $sudahDibayar,
+                'total_harga_modal' => $totalJual, // Renamed to total_harga_jual in migration, but model/seeder still uses total_harga_modal
+                'remarks' => 'Pembayaran piutang dari transaksi ' . $transaksiProduk->no_invoice,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
     }
 }

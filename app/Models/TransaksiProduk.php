@@ -18,6 +18,10 @@ class TransaksiProduk extends Model
         'remarks',
     ];
 
+    protected $casts = [
+        'tanggal' => 'date',
+    ];
+
     public function transaksiProdukDetails()
     {
         return $this->hasMany(TransaksiProdukDetail::class);
