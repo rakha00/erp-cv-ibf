@@ -250,16 +250,24 @@ class TransaksiProdukResource extends Resource
         }, 0);
     }
 
-    private static function downloadDocument(TransaksiProduk $record, array $data): \Illuminate\Http\RedirectResponse
+    private static function downloadDocument(TransaksiProduk $record, array $data): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $routes = [
-            'invoice' => 'transaksi-produk.invoice',
-            'surat_jalan' => 'transaksi-produk.surat-jalan',
-        ];
+        $filename = '';
+        $view = '';
 
-        return redirect()->to(
-            route($routes[$data['type']], $record)
-        );
+        if ($data['type'] === 'invoice') {
+            $filename = 'invoice-'.str_replace(['/', '\\'], '-', $record->no_invoice).'.pdf';
+            $view = 'pdf.invoice';
+        } elseif ($data['type'] === 'surat_jalan') {
+            $filename = 'surat-jalan-'.str_replace(['/', '\\'], '-', $record->no_surat_jalan).'.pdf';
+            $view = 'pdf.surat-jalan';
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, ['transaksi' => $record])->setPaper('a4', 'portrait');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename);
     }
 
     private static function exportTransaksiProdukSummary(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse

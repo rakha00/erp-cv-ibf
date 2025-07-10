@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Exports\KaryawanExport;
 use App\Filament\Resources\KaryawanResource\Pages;
 use App\Filament\Resources\KaryawanResource\RelationManagers;
+use App\Helpers\SettingHelper;
 use App\Models\Karyawan;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -41,20 +42,10 @@ class KaryawanResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('jabatan')
-                    ->options([
-                        'Staff' => 'Staff',
-                        'Teknisi' => 'Teknisi',
-                        'Sales' => 'Sales',
-                        'Helper' => 'Helper',
-                        'Gudang' => 'Gudang',
-                    ])
+                    ->options(SettingHelper::get('karyawan_jabatan_options', []))
                     ->required(),
                 Forms\Components\Select::make('status')
-                    ->options([
-                        'Karyawan Tetap' => 'Karyawan Tetap',
-                        'Karyawan Magang' => 'Karyawan Magang',
-                        'Karyawan Freelance' => 'Karyawan Freelance',
-                    ])
+                    ->options(SettingHelper::get('karyawan_status_options', []))
                     ->required(),
                 Forms\Components\TextInput::make('no_hp')
                     ->label('No HP')

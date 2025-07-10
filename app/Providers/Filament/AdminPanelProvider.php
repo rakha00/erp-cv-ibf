@@ -37,10 +37,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
-                \App\Filament\Widgets\UtangList::class,
-                \App\Filament\Widgets\PiutangList::class,
+                // Widgets\AccountWidget::class,
+                // Widgets\FilamentInfoWidget::class,
             ])
             ->navigationGroups([
                 'Manajemen Produk',
@@ -48,6 +46,7 @@ class AdminPanelProvider extends PanelProvider
                 'Transaksi',
                 'Reminder',
                 'Master Data',
+                'Pengaturan',
             ])
             ->middleware([
                 EncryptCookies::class,

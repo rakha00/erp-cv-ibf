@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             PenghasilanKaryawanDetailSeeder::class,
             UtangSeeder::class,
             PiutangSeeder::class,
+            SettingSeeder::class,
         ]);
     }
 }

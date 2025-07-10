@@ -98,8 +98,18 @@
 			<div style="margin-top: 20px; text-align: left;">
 				<strong>Keterangan:</strong><br>
 				<strong>Rekening Transfer</strong><br>
-				<p style="color: red">a.n CV Inti Bintang Fortuna</p>
-				<p style="color: red">Bank Panin 5602308115</p>
+				@php
+					$bankAccounts = \App\Helpers\SettingHelper::get('bank_accounts', []);
+				@endphp
+
+				@if (count($bankAccounts) > 0)
+					@foreach ($bankAccounts as $account)
+						<p style="color: red">a.n {{ $account['account_name'] }}</p>
+						<p style="color: red">Bank {{ $account['bank_name'] }} {{ $account['account_number'] }}</p>
+					@endforeach
+				@else
+					<p style="color: red">No bank accounts configured.</p>
+				@endif
 			</div>
 		</div>
 	</div>
