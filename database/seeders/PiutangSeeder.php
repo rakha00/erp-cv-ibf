@@ -4,15 +4,12 @@ namespace Database\Seeders;
 
 use App\Models\Piutang;
 use App\Models\TransaksiProduk;
-use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
 class PiutangSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void
     {
@@ -21,6 +18,7 @@ class PiutangSeeder extends Seeder
 
         if ($transaksiProduks->isEmpty()) {
             $this->command->warn('Skipping PiutangSeeder: No TransaksiProduks found. Please run TransaksiProdukSeeder first.');
+
             return;
         }
 
@@ -46,7 +44,7 @@ class PiutangSeeder extends Seeder
                 'status_pembayaran' => $statusPembayaran,
                 'sudah_dibayar' => $sudahDibayar,
                 'total_harga_modal' => $totalJual, // Renamed to total_harga_jual in migration, but model/seeder still uses total_harga_modal
-                'remarks' => 'Pembayaran piutang dari transaksi ' . $transaksiProduk->no_invoice,
+                'remarks' => 'Pembayaran piutang dari transaksi '.$transaksiProduk->no_invoice,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

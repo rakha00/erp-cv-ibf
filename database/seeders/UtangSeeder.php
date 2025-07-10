@@ -4,15 +4,12 @@ namespace Database\Seeders;
 
 use App\Models\BarangMasuk;
 use App\Models\Utang;
-use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
 class UtangSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void
     {
@@ -21,6 +18,7 @@ class UtangSeeder extends Seeder
 
         if ($barangMasuks->isEmpty()) {
             $this->command->warn('Skipping UtangSeeder: No BarangMasuks found. Please run BarangMasukSeeder first.');
+
             return;
         }
 
@@ -46,7 +44,7 @@ class UtangSeeder extends Seeder
                 'status_pembayaran' => $statusPembayaran,
                 'sudah_dibayar' => $sudahDibayar,
                 'total_harga_modal' => $totalModal,
-                'remarks' => 'Pembayaran utang untuk barang masuk ' . $barangMasuk->nomor_barang_masuk,
+                'remarks' => 'Pembayaran utang untuk barang masuk '.$barangMasuk->nomor_barang_masuk,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

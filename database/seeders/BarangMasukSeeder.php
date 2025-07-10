@@ -13,8 +13,6 @@ class BarangMasukSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void
     {
@@ -24,6 +22,7 @@ class BarangMasukSeeder extends Seeder
 
         if ($principleSubdealers->isEmpty() || $unitProduks->isEmpty()) {
             $this->command->warn('Skipping BarangMasukSeeder: No PrincipleSubdealers or UnitProduks found. Please run their seeders first.');
+
             return;
         }
 
@@ -36,9 +35,9 @@ class BarangMasukSeeder extends Seeder
                 $tanggal = Carbon::now()->subDays(rand(1, 30));
                 $barangMasuk = BarangMasuk::create([
                     'principle_subdealer_id' => $principleSubdealer->id,
-                    'nomor_barang_masuk' => 'BM/' . $tanggal->format('Ymd') . '-' . str_pad($nomorBarangMasukCounter++, 3, '0', STR_PAD_LEFT),
+                    'nomor_barang_masuk' => 'BM/'.$tanggal->format('Ymd').'-'.str_pad($nomorBarangMasukCounter++, 3, '0', STR_PAD_LEFT),
                     'tanggal' => $tanggal,
-                    'remarks' => 'Pembelian rutin dari ' . $principleSubdealer->nama,
+                    'remarks' => 'Pembelian rutin dari '.$principleSubdealer->nama,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
@@ -54,7 +53,7 @@ class BarangMasukSeeder extends Seeder
                         'harga_modal' => $unitProduk->harga_modal,
                         'jumlah_barang_masuk' => $jumlahBarang,
                         'total_harga_modal' => $jumlahBarang * $unitProduk->harga_modal,
-                        'remarks' => 'Detail barang masuk untuk ' . $unitProduk->nama_unit,
+                        'remarks' => 'Detail barang masuk untuk '.$unitProduk->nama_unit,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ]);

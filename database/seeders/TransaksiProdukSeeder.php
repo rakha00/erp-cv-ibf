@@ -12,8 +12,6 @@ class TransaksiProdukSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void
     {
@@ -22,6 +20,7 @@ class TransaksiProdukSeeder extends Seeder
 
         if ($unitProduks->isEmpty()) {
             $this->command->warn('Skipping TransaksiProdukSeeder: No UnitProduks found. Please run UnitProdukSeeder first.');
+
             return;
         }
 
@@ -32,8 +31,8 @@ class TransaksiProdukSeeder extends Seeder
         for ($i = 0; $i < 5; $i++) { // Create 5 transaction records
             $tanggal = Carbon::now()->subDays(rand(1, 60));
             $transaksi = TransaksiProduk::create([
-                'no_invoice' => 'INV/' . $tanggal->format('Ymd') . '-' . str_pad($noInvoiceCounter++, 3, '0', STR_PAD_LEFT),
-                'no_surat_jalan' => 'SJ/' . $tanggal->format('Ymd') . '-' . str_pad($noSuratJalanCounter++, 3, '0', STR_PAD_LEFT),
+                'no_invoice' => 'INV/'.$tanggal->format('Ymd').'-'.str_pad($noInvoiceCounter++, 3, '0', STR_PAD_LEFT),
+                'no_surat_jalan' => 'SJ/'.$tanggal->format('Ymd').'-'.str_pad($noSuratJalanCounter++, 3, '0', STR_PAD_LEFT),
                 'tanggal' => $tanggal,
                 'remarks' => 'Penjualan produk elektronik.',
                 'created_at' => $now,
@@ -55,7 +54,7 @@ class TransaksiProdukSeeder extends Seeder
                     'harga_modal' => $product->harga_modal,
                     'jumlah_keluar' => $jumlahKeluar,
                     'total_keuntungan' => round($keuntungan),
-                    'remarks' => 'Detail produk ' . $product->nama_unit,
+                    'remarks' => 'Detail produk '.$product->nama_unit,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
