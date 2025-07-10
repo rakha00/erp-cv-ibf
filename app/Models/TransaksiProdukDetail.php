@@ -9,7 +9,7 @@ class TransaksiProdukDetail extends Model
 {
     use SoftDeletes;
 
-    protected $table = "transaksi_produk_details";
+    protected $table = 'transaksi_produk_details';
 
     protected $fillable = [
         'transaksi_produk_id',

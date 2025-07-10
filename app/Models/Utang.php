@@ -9,7 +9,7 @@ class Utang extends Model
 {
     use SoftDeletes;
 
-    protected $table = "utangs";
+    protected $table = 'utangs';
 
     protected $fillable = [
         'barang_masuk_id',

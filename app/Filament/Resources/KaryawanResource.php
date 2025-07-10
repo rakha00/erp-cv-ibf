@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\KaryawanExport;
 use App\Filament\Resources\KaryawanResource\Pages;
 use App\Filament\Resources\KaryawanResource\RelationManagers;
 use App\Models\Karyawan;
@@ -13,9 +14,6 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Exports\KaryawanExport;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class KaryawanResource extends Resource
 {
@@ -36,6 +34,7 @@ class KaryawanResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('nik')
+                    ->label('NIK')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('nama')
@@ -52,9 +51,9 @@ class KaryawanResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('status')
                     ->options([
-                        'karyawan tetap' => 'karyawan tetap',
-                        'karyawan magang' => 'karyawan magang',
-                        'karyawan freelance' => 'karyawan freelance',
+                        'Karyawan Tetap' => 'Karyawan Tetap',
+                        'Karyawan Magang' => 'Karyawan Magang',
+                        'Karyawan Freelance' => 'Karyawan Freelance',
                     ])
                     ->required(),
                 Forms\Components\TextInput::make('no_hp')
@@ -82,6 +81,7 @@ class KaryawanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nik')
+                    ->label('NIK')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('nama')
                     ->searchable(),
@@ -103,41 +103,17 @@ class KaryawanResource extends Resource
                     ->label('Total Penerimaan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(function (Karyawan $record, $livewire) {
-                        $penghasilan = $record->penghasilanKaryawanDetails()
-                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
-                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
-                            ->first();
-
-                        return $record->gaji_pokok + ($penghasilan->bonus_target ?? 0) + ($penghasilan->uang_makan ?? 0) + ($penghasilan->tunjangan_transportasi ?? 0) + ($penghasilan->thr ?? 0);
-                    }),
+                    ->state(fn (Karyawan $record, $livewire) => self::calculateTotalPenerimaan($record, $livewire)),
                 Tables\Columns\TextColumn::make('total_potongan')
                     ->label('Total Potongan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(function (Karyawan $record, $livewire) {
-                        $penghasilan = $record->penghasilanKaryawanDetails()
-                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
-                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
-                            ->first();
-
-                        return ($penghasilan->keterlambatan ?? 0) + ($penghasilan->tanpa_keterangan ?? 0) + ($penghasilan->pinjaman ?? 0);
-                    }),
+                    ->state(fn (Karyawan $record, $livewire) => self::calculateTotalPotongan($record, $livewire)),
                 Tables\Columns\TextColumn::make('pendapatan_bersih')
                     ->label('Pendapatan Bersih')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(function (Karyawan $record, $livewire) {
-                        $penghasilan = $record->penghasilanKaryawanDetails()
-                            ->whereYear('tanggal', $livewire->tableFilters['tahun']['value'])
-                            ->whereMonth('tanggal', $livewire->tableFilters['bulan']['value'])
-                            ->first();
-
-                        $totalPenerimaan = $record->gaji_pokok + ($penghasilan->bonus_target ?? 0) + ($penghasilan->uang_makan ?? 0) + ($penghasilan->tunjangan_transportasi ?? 0) + ($penghasilan->thr ?? 0);
-                        $totalPotongan = ($penghasilan->keterlambatan ?? 0) + ($penghasilan->tanpa_keterangan ?? 0) + ($penghasilan->pinjaman ?? 0);
-
-                        return $totalPenerimaan - $totalPotongan;
-                    }),
+                    ->state(fn (Karyawan $record, $livewire) => self::calculatePendapatanBersih($record, $livewire)),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -162,7 +138,7 @@ class KaryawanResource extends Resource
                         range(date('Y') - 0, date('Y') + 5)
                     ))
                     ->default(date('Y'))
-                    ->query(fn(Builder $query, array $data) => $query),
+                    ->query(fn (Builder $query, array $data) => $query),
 
                 \Filament\Tables\Filters\SelectFilter::make('bulan')
                     ->label('Filter Bulan')
@@ -181,17 +157,14 @@ class KaryawanResource extends Resource
                         12 => 'Desember',
                     ])
                     ->default(date('n'))
-                    ->query(fn(Builder $query, array $data) => $query),
+                    ->query(fn (Builder $query, array $data) => $query),
             ])
             ->actions([
                 Tables\Actions\Action::make('downloadSlipGaji')
                     ->label('Slip Gaji')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn(Karyawan $record, $livewire) => route('karyawan.slip-gaji', [
-                        'karyawan' => $record,
-                        'tahun' => $livewire->tableFilters['tahun']['value'],
-                        'bulan' => $livewire->tableFilters['bulan']['value'],
-                    ])),
+                    ->color('info')
+                    ->url(fn (Karyawan $record, $livewire) => self::getSlipGajiDownloadUrl($record, $livewire)),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -204,26 +177,12 @@ class KaryawanResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
-                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, false, $tahun, $bulan), 'karyawan_summary.xlsx');
-                    }),
+                    ->action(fn (Table $table) => self::exportKaryawanSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
-                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, true, $tahun, $bulan), 'karyawan_details.xlsx');
-                    })
+                    ->action(fn (Table $table) => self::exportKaryawanDetails($table)),
             ]);
     }
 
@@ -241,5 +200,73 @@ class KaryawanResource extends Resource
             'create' => Pages\CreateKaryawan::route('/create'),
             'edit' => Pages\EditKaryawan::route('/{record}/edit'),
         ];
+    }
+
+    private static function exportKaryawanSummary(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, false, $tahun, $bulan), 'karyawan_summary.xlsx');
+    }
+
+    private static function exportKaryawanDetails(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new KaryawanExport($query, $resourceTitle, true, $tahun, $bulan), 'karyawan_details.xlsx');
+    }
+
+    private static function getPenghasilanDetails(Karyawan $record, $livewire)
+    {
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? date('Y');
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? date('n');
+
+        return $record->penghasilanKaryawanDetails()
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bulan)
+            ->get();
+    }
+
+    private static function calculateTotalPenerimaan(Karyawan $record, $livewire): float
+    {
+        $details = self::getPenghasilanDetails($record, $livewire);
+
+        return $details->sum('bonus_target')
+            + $details->sum('uang_makan')
+            + $details->sum('tunjangan_transportasi')
+            + $details->sum('thr');
+    }
+
+    private static function calculateTotalPotongan(Karyawan $record, $livewire): float
+    {
+        $details = self::getPenghasilanDetails($record, $livewire);
+
+        return $details->sum('keterlambatan')
+            + $details->sum('tanpa_keterangan')
+            + $details->sum('pinjaman');
+    }
+
+    private static function calculatePendapatanBersih(Karyawan $record, $livewire): float
+    {
+        $totalPenerimaan = self::calculateTotalPenerimaan($record, $livewire);
+        $totalPotongan = self::calculateTotalPotongan($record, $livewire);
+
+        return $record->gaji_pokok + $totalPenerimaan - $totalPotongan;
+    }
+
+    private static function getSlipGajiDownloadUrl(Karyawan $record, $livewire): string
+    {
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? date('Y');
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? date('n');
+
+        return route('karyawan.slip-gaji', ['karyawan' => $record, 'tahun' => $tahun, 'bulan' => $bulan]);
     }
 }

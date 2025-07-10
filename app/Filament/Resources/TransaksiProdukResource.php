@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\TransaksiProdukExport;
 use App\Filament\Resources\TransaksiProdukResource\Pages;
 use App\Filament\Resources\TransaksiProdukResource\RelationManagers;
 use App\Models\TransaksiProduk;
@@ -12,9 +13,6 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Exports\TransaksiProdukExport;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 
 class TransaksiProdukResource extends Resource
@@ -39,32 +37,7 @@ class TransaksiProdukResource extends Resource
                     ->label('Tanggal')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, $set) {
-                        if ($state) {
-                            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
-                                $date = Carbon::parse($state);
-                                $formatDate = $date->format('dmY');
-                                $latestRecord = TransaksiProduk::whereDate('tanggal', $state)
-                                    ->withTrashed()
-                                    ->orderBy('created_at', 'desc')
-                                    ->lockForUpdate()
-                                    ->first();
-
-                                $nextNumber = 1;
-                                if ($latestRecord) {
-                                    $parts = explode('-', $latestRecord->no_invoice);
-                                    $lastId = end($parts);
-                                    if (is_numeric($lastId)) {
-                                        $nextNumber = (int) $lastId + 1;
-                                    }
-                                }
-
-                                // Set both invoice and delivery note numbers
-                                $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
-                                $set('no_surat_jalan', "SJ/{$formatDate}-{$nextNumber}");
-                            });
-                        }
-                    }),
+                    ->afterStateUpdated(fn (?string $state, Forms\Set $set) => self::generateInvoiceAndDeliveryNoteNumbers($state, $set)),
                 Forms\Components\TextInput::make('no_invoice')
                     ->label('No Invoice')
                     ->required()
@@ -81,6 +54,34 @@ class TransaksiProdukResource extends Resource
                     ->label('Remarks')
                     ->columnSpanFull(),
             ]);
+    }
+
+    private static function generateInvoiceAndDeliveryNoteNumbers(?string $state, Forms\Set $set): void
+    {
+        if ($state) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
+                $date = Carbon::parse($state);
+                $formatDate = $date->format('dmY');
+                $latestRecord = TransaksiProduk::whereDate('tanggal', $state)
+                    ->withTrashed()
+                    ->orderBy('created_at', 'desc')
+                    ->lockForUpdate()
+                    ->first();
+
+                $nextNumber = 1;
+                if ($latestRecord) {
+                    $parts = explode('-', $latestRecord->no_invoice);
+                    $lastId = end($parts);
+                    if (is_numeric($lastId)) {
+                        $nextNumber = (int) $lastId + 1;
+                    }
+                }
+
+                // Set both invoice and delivery note numbers
+                $set('no_invoice', "INV/{$formatDate}-{$nextNumber}");
+                $set('no_surat_jalan', "SJ/{$formatDate}-{$nextNumber}");
+            });
+        }
     }
 
     public static function table(Table $table): Table
@@ -103,22 +104,12 @@ class TransaksiProdukResource extends Resource
                     ->label('Total Harga Jual')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(function (TransaksiProduk $record) {
-                        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
-                            return $carry + ($detail->harga_jual * $detail->jumlah_keluar);
-                        }, 0);
-                    }),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalHargaJual($record)),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(function (TransaksiProduk $record) {
-                        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
-                            $unitProduk = $detail->unitProduk()->withTrashed()->first();
-                            $hargaModal = $unitProduk->harga_modal ?? 0;
-                            return $carry + ($detail->harga_jual - $hargaModal) * $detail->jumlah_keluar;
-                        }, 0);
-                    }),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalKeuntungan($record)),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -141,13 +132,14 @@ class TransaksiProdukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn($year) => [$year => $year]);
+                            ->mapWithKeys(fn ($year) => [$year => $year]);
+
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereYear('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereYear('tanggal', $data['value'])
                         );
                     }),
 
@@ -170,7 +162,7 @@ class TransaksiProdukResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereMonth('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereMonth('tanggal', $data['value'])
                         );
                     }),
 
@@ -185,15 +177,15 @@ class TransaksiProdukResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['from'] && $data['until'],
-                            fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
+                            fn (Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('download')
                     ->label('Download PDF')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
                     ->form([
                         Forms\Components\Select::make('type')
                             ->label('Dokumen')
@@ -203,16 +195,8 @@ class TransaksiProdukResource extends Resource
                                 'surat_jalan' => 'Surat Jalan',
                             ]),
                     ])
-                    ->action(function (TransaksiProduk $record, array $data) {
-                        $routes = [
-                            'invoice' => 'transaksi-produk.invoice',
-                            'surat_jalan' => 'transaksi-produk.surat-jalan',
-                        ];
-
-                        return redirect()->to(
-                            route($routes[$data['type']], $record)
-                        );
-                    }),
+                    ->action(fn (TransaksiProduk $record, array $data) => self::downloadDocument($record, $data)),
+                Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -224,26 +208,12 @@ class TransaksiProdukResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
-                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new TransaksiProdukExport($query, $resourceTitle, false, $tahun, $bulan), 'transaksi_produk_summary.xlsx');
-                    }),
+                    ->action(fn (Table $table) => self::exportTransaksiProdukSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
-                        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new TransaksiProdukExport($query, $resourceTitle, true, $tahun, $bulan), 'transaksi_produk_details.xlsx');
-                    })
+                    ->action(fn (Table $table) => self::exportTransaksiProdukDetails($table)),
             ]);
     }
 
@@ -261,5 +231,56 @@ class TransaksiProdukResource extends Resource
             'create' => Pages\CreateTransaksiProduk::route('/create'),
             'edit' => Pages\EditTransaksiProduk::route('/{record}/edit'),
         ];
+    }
+
+    private static function calculateTotalHargaJual(TransaksiProduk $record): float
+    {
+        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
+            return $carry + ($detail->harga_jual * $detail->jumlah_keluar);
+        }, 0);
+    }
+
+    private static function calculateTotalKeuntungan(TransaksiProduk $record): float
+    {
+        return $record->transaksiProdukDetails->reduce(function ($carry, $detail) {
+            $unitProduk = $detail->unitProduk()->withTrashed()->first();
+            $hargaModal = $unitProduk->harga_modal ?? 0;
+
+            return $carry + ($detail->harga_jual - $hargaModal) * $detail->jumlah_keluar;
+        }, 0);
+    }
+
+    private static function downloadDocument(TransaksiProduk $record, array $data): \Illuminate\Http\RedirectResponse
+    {
+        $routes = [
+            'invoice' => 'transaksi-produk.invoice',
+            'surat_jalan' => 'transaksi-produk.surat-jalan',
+        ];
+
+        return redirect()->to(
+            route($routes[$data['type']], $record)
+        );
+    }
+
+    private static function exportTransaksiProdukSummary(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new TransaksiProdukExport($query, $resourceTitle, false, $tahun, $bulan), 'transaksi_produk_summary.xlsx');
+    }
+
+    private static function exportTransaksiProdukDetails(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+        $tahun = $livewire->tableFilters['tahun']['value'] ?? null;
+        $bulan = $livewire->tableFilters['bulan']['value'] ?? null;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new TransaksiProdukExport($query, $resourceTitle, true, $tahun, $bulan), 'transaksi_produk_details.xlsx');
     }
 }

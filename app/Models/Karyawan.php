@@ -9,7 +9,7 @@ class Karyawan extends Model
 {
     use SoftDeletes;
 
-    protected $table = "karyawans";
+    protected $table = 'karyawans';
 
     protected $fillable = [
         'nik',

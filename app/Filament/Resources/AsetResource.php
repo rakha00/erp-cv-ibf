@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\AsetExport;
 use App\Filament\Resources\AsetResource\Pages;
-use App\Filament\Resources\AsetResource\RelationManagers;
 use App\Models\Aset;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,10 +12,6 @@ use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Blade;
-use App\Exports\AsetExport;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class AsetResource extends Resource
 {
@@ -45,28 +41,26 @@ class AsetResource extends Resource
                     ->stripCharacters(',')
                     ->numeric()
                     ->live(true)
-                    ->afterStateUpdated(function ($state, Forms\Components\TextInput $component, $get, $set) {
-                        $harga = (float) str_replace(['.', ','], '', $state);
-                        $jumlah_aset = (float) str_replace(['.', ','], '', $get('jumlah_aset'));
-                        $total = $harga * $jumlah_aset;
-                        $set('total_harga_aset', number_format($total, 0, '.', ','));
-                    }),
+                    ->afterStateUpdated(fn (?string $state, Forms\Get $get, Forms\Set $set) => self::updateTotalHargaAset($get, $set)),
                 Forms\Components\TextInput::make('jumlah_aset')
                     ->required()
                     ->numeric()
                     ->live(true)
-                    ->afterStateUpdated(function ($state, Forms\Components\TextInput $component, $get, $set) {
-                        $harga = (float) str_replace(['.', ','], '', $get('harga'));
-                        $jumlah_aset = (float) str_replace(['.', ','], '', $state);
-                        $total = $harga * $jumlah_aset;
-                        $set('total_harga_aset', number_format($total, 0, '.', ','));
-                    }),
+                    ->afterStateUpdated(fn (?string $state, Forms\Get $get, Forms\Set $set) => self::updateTotalHargaAset($get, $set)),
                 Forms\Components\TextInput::make('total_harga_aset')
                     ->label('Total Harga Aset')
                     ->prefix('Rp ')
                     ->disabled()
                     ->dehydrated(false),
             ]);
+    }
+
+    private static function updateTotalHargaAset(Forms\Get $get, Forms\Set $set): void
+    {
+        $harga = (float) str_replace(['.', ','], '', $get('harga'));
+        $jumlahAset = (float) str_replace(['.', ','], '', $get('jumlah_aset'));
+        $total = $harga * $jumlahAset;
+        $set('total_harga_aset', number_format($total, 0, '.', ','));
     }
 
     public static function table(Table $table): Table
@@ -86,7 +80,7 @@ class AsetResource extends Resource
                     ->prefix('Rp ')
                     ->label('Total Harga Aset')
                     ->numeric()
-                    ->getStateUsing(fn(Aset $record): float => $record->harga * $record->jumlah_aset)
+                    ->getStateUsing(fn (Aset $record): float => $record->harga * $record->jumlah_aset)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -117,8 +111,9 @@ class AsetResource extends Resource
                         $livewire = $table->getLivewire();
                         $query = $livewire->getFilteredTableQuery();
                         $resourceTitle = static::$pluralModelLabel;
+
                         return \Maatwebsite\Excel\Facades\Excel::download(new AsetExport($query, $resourceTitle), 'asets.xlsx');
-                    })
+                    }),
             ]);
     }
 

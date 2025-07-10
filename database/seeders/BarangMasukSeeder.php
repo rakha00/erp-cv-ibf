@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\BarangMasuk;
 use App\Models\BarangMasukDetail;
 use App\Models\PrincipleSubdealer;
 use App\Models\UnitProduk;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class BarangMasukSeeder extends Seeder
 {
@@ -23,7 +23,7 @@ class BarangMasukSeeder extends Seeder
 
         $barangMasuk = BarangMasuk::create([
             'principle_subdealer_id' => $principle->id,
-            'nomor_barang_masuk' => 'BM/' . Carbon::now()->format('dmY') . '-1',
+            'nomor_barang_masuk' => 'BM/'.Carbon::now()->format('dmY').'-1',
             'tanggal' => Carbon::now(),
         ]);
 

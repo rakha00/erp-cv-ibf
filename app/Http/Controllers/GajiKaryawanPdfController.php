@@ -16,7 +16,7 @@ class GajiKaryawanPdfController extends Controller
         $karyawan->load([
             'penghasilanKaryawanDetails' => function ($query) use ($tahun, $bulan) {
                 $query->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan);
-            }
+            },
         ]);
 
         $penghasilanDetails = $karyawan->penghasilanKaryawanDetails;
@@ -49,6 +49,6 @@ class GajiKaryawanPdfController extends Controller
             'pendapatanBersih' => $pendapatanBersih,
         ]);
 
-        return $pdf->download('slip-gaji-' . $karyawan->nama . '-' . $bulan . '-' . $tahun . '.pdf');
+        return $pdf->download('slip-gaji-'.$karyawan->nama.'-'.$bulan.'-'.$tahun.'.pdf');
     }
 }

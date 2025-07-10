@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\PrincipleSubdealer;
+use Illuminate\Database\Seeder;
 
 class PrincipleSubdealerSeeder extends Seeder
 {

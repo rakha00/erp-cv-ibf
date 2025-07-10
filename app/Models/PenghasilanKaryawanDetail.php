@@ -9,7 +9,7 @@ class PenghasilanKaryawanDetail extends Model
 {
     use SoftDeletes;
 
-    protected $table = "penghasilan_karyawan_details";
+    protected $table = 'penghasilan_karyawan_details';
 
     protected $fillable = [
         'karyawan_id',

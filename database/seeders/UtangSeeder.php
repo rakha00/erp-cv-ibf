@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Utang;
 use App\Models\BarangMasuk;
+use App\Models\Utang;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class UtangSeeder extends Seeder
 {

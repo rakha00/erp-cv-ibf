@@ -9,7 +9,7 @@ use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class PenghasilanKaryawanDetailRelationManager extends RelationManager
 {
@@ -91,38 +91,47 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('bonus_target')
                     ->label('Bonus Target')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Bonus Target')->money('IDR')),
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('uang_makan')
                     ->label('Uang Makan')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Uang Makan')->money('IDR')),
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('tunjangan_transportasi')
                     ->label('Tunjangan Transportasi')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Tunjangan Transportasi')->money('IDR')),
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('thr')
                     ->label('THR')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total THR')->money('IDR')),
+                    ->summarize(
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Penerimaan')
+                            ->money('IDR')
+                            ->using(function (\Illuminate\Database\Query\Builder $query): float {
+                                return $query->clone()->sum(DB::raw('COALESCE(bonus_target, 0) + COALESCE(uang_makan, 0) + COALESCE(tunjangan_transportasi, 0) + COALESCE(thr, 0)'));
+                            })
+                    ),
                 Tables\Columns\TextColumn::make('keterlambatan')
                     ->label('Keterlambatan')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Keterlambatan')->money('IDR')),
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('tanpa_keterangan')
                     ->label('Tanpa Keterangan')
                     ->prefix('Rp ')
-                    ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Tanpa Keterangan')->money('IDR')),
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('pinjaman')
                     ->label('Pinjaman')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total Pinjaman')->money('IDR')),
+                    ->summarize(
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Potongan')
+                            ->money('IDR')
+                            ->using(function (\Illuminate\Database\Query\Builder $query): float {
+                                return $query->clone()->sum(DB::raw('COALESCE(keterlambatan, 0) + COALESCE(tanpa_keterangan, 0) + COALESCE(pinjaman, 0)'));
+                            })
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -135,10 +144,7 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                         range(date('Y') - 5, date('Y') + 5)
                     ))
                     ->default(date('Y'))
-                    ->query(fn(Builder $query, array $data) => $query->when(
-                        $data['value'],
-                        fn(Builder $query, $value) => $query->whereYear('tanggal', $value)
-                    )),
+                    ->query(fn (Builder $query, array $data) => self::filterByYear($query, $data)),
 
                 Tables\Filters\SelectFilter::make('bulan')
                     ->label('Filter Bulan')
@@ -157,13 +163,23 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                         12 => 'Desember',
                     ])
                     ->default(date('n'))
-                    ->query(fn(Builder $query, array $data) => $query->when(
-                        $data['value'],
-                        fn(Builder $query, $value) => $query->whereMonth('tanggal', $value)
-                    )),
+                    ->query(fn (Builder $query, array $data) => self::filterByMonth($query, $data)),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->mutateFormDataUsing(
+                        function (array $data): array {
+                            $data['bonus_target'] = $data['bonus_target'] ?? 0;
+                            $data['uang_makan'] = $data['uang_makan'] ?? 0;
+                            $data['tunjangan_transportasi'] = $data['tunjangan_transportasi'] ?? 0;
+                            $data['thr'] = $data['thr'] ?? 0;
+                            $data['keterlambatan'] = $data['keterlambatan'] ?? 0;
+                            $data['tanpa_keterangan'] = $data['tanpa_keterangan'] ?? 0;
+                            $data['pinjaman'] = $data['pinjaman'] ?? 0;
+
+                            return $data;
+                        }
+                    ),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -174,5 +190,21 @@ class PenghasilanKaryawanDetailRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    private static function filterByYear(Builder $query, array $data): Builder
+    {
+        return $query->when(
+            $data['value'],
+            fn (Builder $query, $value) => $query->whereYear('tanggal', $value)
+        );
+    }
+
+    private static function filterByMonth(Builder $query, array $data): Builder
+    {
+        return $query->when(
+            $data['value'],
+            fn (Builder $query, $value) => $query->whereMonth('tanggal', $value)
+        );
     }
 }

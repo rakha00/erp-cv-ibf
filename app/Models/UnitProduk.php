@@ -9,7 +9,7 @@ class UnitProduk extends Model
 {
     use SoftDeletes;
 
-    protected $table = "unit_produks";
+    protected $table = 'unit_produks';
 
     protected $fillable = [
         'sku',
@@ -29,4 +29,3 @@ class UnitProduk extends Model
         return $this->hasMany(TransaksiProdukDetail::class);
     }
 }
-

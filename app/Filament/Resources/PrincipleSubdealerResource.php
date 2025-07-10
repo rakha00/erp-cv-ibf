@@ -2,19 +2,15 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\PrincipleSubdealerExport;
 use App\Filament\Resources\PrincipleSubdealerResource\Pages;
-use App\Filament\Resources\PrincipleSubdealerResource\RelationManagers;
 use App\Models\PrincipleSubdealer;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
-use App\Exports\PrincipleSubdealerExport;
-use Illuminate\Support\Facades\Blade;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PrincipleSubdealerResource extends Resource
 {
@@ -97,13 +93,17 @@ class PrincipleSubdealerResource extends Resource
                     ->label('Export to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new PrincipleSubdealerExport($query, $resourceTitle), 'principle_subdealer.xlsx');
-                    })
+                    ->action(fn (Table $table) => self::exportPrincipleSubdealerExcel($table)),
             ]);
+    }
+
+    private static function exportPrincipleSubdealerExcel(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new PrincipleSubdealerExport($query, $resourceTitle), 'principle_subdealer.xlsx');
     }
 
     public static function getRelations(): array

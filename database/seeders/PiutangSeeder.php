@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Piutang;
 use App\Models\TransaksiProduk;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class PiutangSeeder extends Seeder
 {

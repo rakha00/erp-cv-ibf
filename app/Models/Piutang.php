@@ -18,7 +18,7 @@ class Piutang extends Model
         'sudah_dibayar',
         'total_harga_modal',
         'foto',
-        'remarks'
+        'remarks',
     ];
 
     protected $casts = [

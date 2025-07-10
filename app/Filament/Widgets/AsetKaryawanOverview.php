@@ -17,7 +17,7 @@ class AsetKaryawanOverview extends BaseWidget
         $jumlahKaryawan = Karyawan::count();
 
         return [
-            Stat::make('Total Nilai Aset', 'Rp ' . number_format($totalAset, 0, ',', '.'))
+            Stat::make('Total Nilai Aset', 'Rp '.number_format($totalAset, 0, ',', '.'))
                 ->icon('heroicon-o-building-office')
                 ->color('primary'),
             Stat::make('Jumlah Karyawan', $jumlahKaryawan)

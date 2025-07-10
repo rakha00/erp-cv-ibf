@@ -23,7 +23,6 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
-
         $this->call([
             KaryawanSeeder::class,
             PrincipleSubdealerSeeder::class,

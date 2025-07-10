@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\BarangMasukExport;
 use App\Filament\Resources\BarangMasukResource\Pages;
 use App\Filament\Resources\BarangMasukResource\RelationManagers;
 use App\Models\BarangMasuk;
@@ -13,10 +14,6 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Exports\BarangMasukExport;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Carbon;
 
 class BarangMasukResource extends Resource
 {
@@ -45,33 +42,7 @@ class BarangMasukResource extends Resource
                     ->label('Tanggal')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, $set) {
-                        if ($state) {
-                            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
-                                $date = \Carbon\Carbon::parse($state);
-                                $latestRecord = BarangMasuk::whereDate('tanggal', $state)
-                                    ->withTrashed()
-                                    ->orderBy('created_at', 'desc')
-                                    ->lockForUpdate()
-                                    ->first();
-
-                                $nextId = 1;
-                                if ($latestRecord) {
-                                    $parts = explode('-', $latestRecord->nomor_barang_masuk);
-                                    $lastId = end($parts);
-                                    if (is_numeric($lastId)) {
-                                        $nextId = (int) $lastId + 1;
-                                    }
-                                }
-
-                                $set('nomor_barang_masuk', sprintf(
-                                    'BM/%s-%d',
-                                    $date->format('dmY'),
-                                    $nextId
-                                ));
-                            });
-                        }
-                    }),
+                    ->afterStateUpdated(fn (?string $state, Forms\Set $set) => self::generateNomorBarangMasuk($state, $set)),
                 Forms\Components\TextInput::make('nomor_barang_masuk')
                     ->label('Nomor Barang Masuk')
                     ->required()
@@ -81,6 +52,35 @@ class BarangMasukResource extends Resource
                     ->label('Remarks')
                     ->columnSpanFull(),
             ]);
+    }
+
+    private static function generateNomorBarangMasuk(?string $state, Forms\Set $set): void
+    {
+        if ($state) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($state, $set) {
+                $date = \Carbon\Carbon::parse($state);
+                $latestRecord = BarangMasuk::whereDate('tanggal', $state)
+                    ->withTrashed()
+                    ->orderBy('created_at', 'desc')
+                    ->lockForUpdate()
+                    ->first();
+
+                $nextId = 1;
+                if ($latestRecord) {
+                    $parts = explode('-', $latestRecord->nomor_barang_masuk);
+                    $lastId = end($parts);
+                    if (is_numeric($lastId)) {
+                        $nextId = (int) $lastId + 1;
+                    }
+                }
+
+                $set('nomor_barang_masuk', sprintf(
+                    'BM/%s-%d',
+                    $date->format('dmY'),
+                    $nextId
+                ));
+            });
+        }
     }
 
     public static function table(Table $table): Table
@@ -101,12 +101,7 @@ class BarangMasukResource extends Resource
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
-                    ->state(function (BarangMasuk $record): string {
-                        $total = $record->barangMasukDetails->reduce(function ($carry, $detail) {
-                            return $carry + ($detail->harga_modal * $detail->jumlah_barang_masuk);
-                        }, 0);
-                        return number_format($total, 0, ',', ',');
-                    })
+                    ->state(fn (BarangMasuk $record): string => self::calculateTotalHargaModal($record))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
@@ -123,7 +118,7 @@ class BarangMasukResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('tanggal', 'desc')
-            ->modifyQueryUsing(fn(Builder $query) => $query->with('barangMasukDetails'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('barangMasukDetails'))
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
@@ -132,13 +127,14 @@ class BarangMasukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn($year) => [$year => $year]);
+                            ->mapWithKeys(fn ($year) => [$year => $year]);
+
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereYear('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereYear('tanggal', $data['value'])
                         );
                     }),
 
@@ -161,7 +157,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereMonth('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereMonth('tanggal', $data['value'])
                         );
                     }),
 
@@ -176,7 +172,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['from'] && $data['until'],
-                            fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
+                            fn (Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
             ])
@@ -193,23 +189,40 @@ class BarangMasukResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, false), 'barang_masuk_summary.xlsx');
-                    }),
+                    ->action(fn (Table $table) => self::exportAllSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(function (Table $table) {
-                        $livewire = $table->getLivewire();
-                        $query = $livewire->getFilteredTableQuery();
-                        $resourceTitle = static::$pluralModelLabel;
-                        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, true), 'barang_masuk_details.xlsx');
-                    })
+                    ->action(fn (Table $table) => self::exportAllDetails($table)),
             ]);
+    }
+
+    private static function exportAllSummary(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, false), 'barang_masuk_summary.xlsx');
+    }
+
+    private static function exportAllDetails(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new BarangMasukExport($query, $resourceTitle, true), 'barang_masuk_details.xlsx');
+    }
+
+    private static function calculateTotalHargaModal(BarangMasuk $record): string
+    {
+        $total = $record->barangMasukDetails->reduce(function ($carry, $detail) {
+            return $carry + ($detail->harga_modal * $detail->jumlah_barang_masuk);
+        }, 0);
+
+        return number_format($total, 0, ',', ',');
     }
 
     public static function getRelations(): array

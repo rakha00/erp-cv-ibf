@@ -5,16 +5,14 @@ namespace App\Filament\Resources\TransaksiProdukResource\RelationManagers;
 use App\Models\UnitProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\RawJs;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\Summarizers\Summarizer;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Table;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 
 class TransaksiProdukDetailsRelationManager extends RelationManager
 {
@@ -26,49 +24,31 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
-                    ->options(function (Get $get) {
-                        $selectedUnitId = $get('unit_produk_id');
-                        $units = UnitProduk::all();
-
-                        if ($selectedUnitId) {
-                            $selectedUnit = UnitProduk::withTrashed()->find($selectedUnitId);
-                            if ($selectedUnit && $selectedUnit->trashed() && !$units->contains('id', $selectedUnitId)) {
-                                $units->add($selectedUnit);
-                            }
-                        }
-
-                        return $units->mapWithKeys(function ($unit) {
-                            $label = $unit->sku;
-                            if ($unit->trashed()) {
-                                $label .= ' (Dihapus)';
-                            }
-                            return [$unit->id => $label];
-                        });
-                    })
+                    ->options(fn (Get $get): array => self::getUnitProdukOptions($get))
                     ->searchable()
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                        $unit = UnitProduk::withTrashed()->find($state);
-                        if ($unit) {
-                            $set('nama_unit', $unit->nama_unit);
-                            $set('harga_modal', number_format($unit->harga_modal, 0, ',', ','));
-
-                            $hargaJual = (float) str_replace(',', '', $get('harga_jual') ?? '0');
-                            $jumlahKeluar = (int) ($get('jumlah_keluar') ?? '0');
-                            $keuntungan = ($hargaJual - $unit->harga_modal) * $jumlahKeluar;
-                            $set('total_keuntungan', number_format($keuntungan, 0, ',', ','));
-                        } else {
-                            $set('nama_unit', null);
-                            $set('harga_modal', null);
-                            $set('total_keuntungan', null);
-                        }
-                    }),
+                    ->afterStateUpdated(fn (Set $set, Get $get, $state) => self::updateUnitProdukDetails($set, $get, $state)),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
                     ->disabled()
                     ->dehydrated()
                     ->required(),
+                Forms\Components\TextInput::make('harga_jual')
+                    ->label('Harga Jual/Unit')
+                    ->prefix('Rp')
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
+                    ->numeric()
+                    ->required()
+                    ->live(true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateTotals($get, $set)),
+                Forms\Components\TextInput::make('jumlah_keluar')
+                    ->label('Jumlah Keluar')
+                    ->numeric()
+                    ->required()
+                    ->live(true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateTotals($get, $set)),
                 Forms\Components\TextInput::make('harga_modal')
                     ->label('Harga Modal')
                     ->prefix('Rp')
@@ -84,46 +64,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->stripCharacters(',')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated()
-                    ->afterStateHydrated(function (Set $set, Get $get) {
-                        if ($get('harga_jual') && $get('harga_modal') && $get('jumlah_keluar')) {
-                            $hargaJual = (float) str_replace(',', '', $get('harga_jual'));
-                            $hargaModal = (float) str_replace(',', '', $get('harga_modal'));
-                            $jumlahKeluar = (int) $get('jumlah_keluar');
-                            $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
-                            $set('total_keuntungan', number_format($keuntungan, 0, ',', ','));
-                        } else {
-                            $set('total_keuntungan', null);
-                        }
-                    })
-                    ->live(onBlur: true),
-                Forms\Components\TextInput::make('harga_jual')
-                    ->label('Harga Jual/Unit')
-                    ->prefix('Rp')
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->numeric()
-                    ->required()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        $hargaJual = (float) str_replace(',', '', $get('harga_jual') ?? '0');
-                        $hargaModal = (float) str_replace(',', '', $get('harga_modal') ?? '0');
-                        $jumlahKeluar = (int) ($get('jumlah_keluar') ?? '0');
-                        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
-                        $set('total_keuntungan', number_format($keuntungan, 0, ',', ','));
-                    }),
-                Forms\Components\TextInput::make('jumlah_keluar')
-                    ->label('Jumlah Keluar')
-                    ->numeric()
-                    ->required()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, Set $set) {
-                        $hargaJual = (float) str_replace(',', '', $get('harga_jual') ?? '0');
-                        $hargaModal = (float) str_replace(',', '', $get('harga_modal') ?? '0');
-                        $jumlahKeluar = (int) ($get('jumlah_keluar') ?? '0');
-                        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
-                        $set('total_keuntungan', number_format($keuntungan, 0, ',', ','));
-                    }),
+                    ->dehydrated(),
                 Forms\Components\Textarea::make('remarks')
                     ->label('Remarks')
                     ->columnSpanFull(),
@@ -132,30 +73,12 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $unitProduk = UnitProduk::withTrashed()->find($data['unit_produk_id']);
-        $data['nama_unit'] = $unitProduk?->nama_unit;
-        $data['harga_modal'] = $unitProduk?->harga_modal;
-
-        $hargaJual = (float) str_replace(',', '', $data['harga_jual']);
-        $hargaModal = (float) $data['harga_modal'];
-        $jumlahKeluar = (int) $data['jumlah_keluar'];
-        $data['total_keuntungan'] = ($hargaJual - $hargaModal) * $jumlahKeluar;
-
-        return $data;
+        return self::mutateFormData($data);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $unitProduk = UnitProduk::withTrashed()->find($data['unit_produk_id']);
-        $data['nama_unit'] = $unitProduk?->nama_unit;
-        $data['harga_modal'] = $unitProduk?->harga_modal;
-
-        $hargaJual = (float) str_replace(',', '', $data['harga_jual']);
-        $hargaModal = (float) $data['harga_modal'];
-        $jumlahKeluar = (int) $data['jumlah_keluar'];
-        $data['total_keuntungan'] = ($hargaJual - $hargaModal) * $jumlahKeluar;
-
-        return $data;
+        return self::mutateFormData($data);
     }
 
     public function table(Table $table): Table
@@ -166,43 +89,18 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('unitProduk.sku')
                     ->label('SKU')
                     ->sortable()
-                    ->state(function ($record) {
-                        return $record->unitProduk()->withTrashed()->first()?->sku ?? '-';
-                    })
-                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'danger' : null)
-                    ->description(fn($record) => $record->unitProduk()->withTrashed()->first()?->deleted_at ? 'Data telah dihapus' : null),
-
+                    ->color(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'danger' : null)
+                    ->description(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'Data telah dihapus' : null),
                 Tables\Columns\TextColumn::make('nama_unit')
                     ->label('Nama Unit')
                     ->sortable()
-                    ->icon(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
-                            return null;
-                        }
-                        return 'heroicon-s-exclamation-circle';
-                    })
-                    ->color(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-
-                        if (!$unitProduk || $unitProduk->nama_unit !== $record->nama_unit) {
-                            return 'warning';
-                        }
-                        return null;
-                    })
-                    ->tooltip(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || $unitProduk->nama_unit === $record->nama_unit) {
-                            return null;
-                        }
-                        return "Nama unit saat ini: {$unitProduk->nama_unit}";
-                    }),
-
+                    ->icon(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'heroicon-s-trash' : null)
+                    ->color(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'danger' : null)
+                    ->tooltip(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'Data master unit produk ini telah dihapus' : null),
                 Tables\Columns\TextColumn::make('jumlah_keluar')
                     ->label('Qty')
                     ->numeric()
                     ->sortable(),
-
                 Tables\Columns\TextColumn::make('harga_modal')
                     ->label('Harga Modal/Unit')
                     ->prefix('Rp ')
@@ -210,27 +108,29 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     ->sortable()
                     ->icon(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
                             return null;
                         }
+
                         return 'heroicon-s-exclamation-circle';
                     })
                     ->color(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
 
-                        if (!$unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
                             return 'warning';
                         }
+
                         return null;
                     })
                     ->tooltip(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
                             return null;
                         }
-                        return "Harga modal saat ini: Rp " . number_format($unitProduk->harga_modal, 0, ',', '.');
-                    }),
 
+                        return 'Harga modal saat ini: Rp '.number_format($unitProduk->harga_modal, 0, ',', '.');
+                    }),
                 Tables\Columns\TextColumn::make('harga_jual')
                     ->label('Harga Jual/Unit')
                     ->prefix('Rp ')
@@ -247,7 +147,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                             ->label('Total Keuntungan')
                             ->numeric()
                             ->prefix('Rp ')
-                            ->using(fn(QueryBuilder $query): float => $query->sum('total_keuntungan'))
+                            ->using(fn (QueryBuilder $query): float => $query->sum('total_keuntungan'))
                     ),
             ])
             ->filters([
@@ -265,5 +165,65 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    private static function getUnitProdukOptions(Get $get): array
+    {
+        $selectedUnitId = $get('unit_produk_id');
+        $units = UnitProduk::all();
+
+        if ($selectedUnitId) {
+            $selectedUnit = UnitProduk::withTrashed()->find($selectedUnitId);
+            if ($selectedUnit && $selectedUnit->trashed() && ! $units->contains('id', $selectedUnitId)) {
+                $units->add($selectedUnit);
+            }
+        }
+
+        return $units->mapWithKeys(function ($unit) {
+            $label = "{$unit->sku}";
+            if ($unit->trashed()) {
+                $label .= ' (Dihapus)';
+            }
+
+            return [$unit->id => $label];
+        })->all();
+    }
+
+    private static function updateUnitProdukDetails(Set $set, Get $get, $state): void
+    {
+        $unit = UnitProduk::withTrashed()->find($state);
+        if ($unit) {
+            $set('nama_unit', $unit->nama_unit);
+            $set('harga_modal', number_format($unit->harga_modal, 0, '.', ','));
+            self::updateTotals($get, $set);
+        } else {
+            $set('nama_unit', null);
+            $set('harga_modal', null);
+            $set('total_keuntungan', null);
+        }
+    }
+
+    private static function updateTotals(Get $get, Set $set): void
+    {
+        $hargaJual = (float) str_replace(',', '', $get('harga_jual') ?? null);
+        $hargaModal = (float) str_replace(',', '', $get('harga_modal') ?? null);
+        $jumlahKeluar = (int) ($get('jumlah_keluar') ?? 0);
+        $keuntungan = ($hargaJual - $hargaModal) * $jumlahKeluar;
+        $set('harga_jual', number_format($hargaJual, 0, '.', ','));
+        $set('total_keuntungan', number_format($keuntungan, 0, '.', ','));
+    }
+
+    private static function mutateFormData(array $data): array
+    {
+        $unitProduk = UnitProduk::withTrashed()->find($data['unit_produk_id']);
+        $data['nama_unit'] = $unitProduk?->nama_unit;
+        $data['harga_modal'] = $unitProduk?->harga_modal;
+
+        $hargaJual = (float) $data['harga_jual'];
+        $hargaModal = (float) $data['harga_modal'];
+        $jumlahKeluar = (int) $data['jumlah_keluar'];
+        $data['total_keuntungan'] = ($hargaJual - $hargaModal) * $jumlahKeluar;
+
+        return $data;
     }
 }

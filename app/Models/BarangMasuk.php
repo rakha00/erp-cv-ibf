@@ -9,7 +9,7 @@ class BarangMasuk extends Model
 {
     use SoftDeletes;
 
-    protected $table = "barang_masuks";
+    protected $table = 'barang_masuks';
 
     protected $fillable = [
         'principle_subdealer_id',

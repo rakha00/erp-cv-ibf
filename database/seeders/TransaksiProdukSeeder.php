@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\TransaksiProduk;
 use App\Models\TransaksiProdukDetail;
 use App\Models\UnitProduk;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class TransaksiProdukSeeder extends Seeder
 {
@@ -20,8 +20,8 @@ class TransaksiProdukSeeder extends Seeder
         $products = UnitProduk::inRandomOrder()->limit(5)->get();
 
         $transaksi = TransaksiProduk::create([
-            'no_invoice' => 'INV/' . Carbon::now()->format('dmY') . '-1',
-            'no_surat_jalan' => 'SJ/' . Carbon::now()->format('dmY') . '-1',
+            'no_invoice' => 'INV/'.Carbon::now()->format('dmY').'-1',
+            'no_surat_jalan' => 'SJ/'.Carbon::now()->format('dmY').'-1',
             'tanggal' => Carbon::now(),
         ]);
 

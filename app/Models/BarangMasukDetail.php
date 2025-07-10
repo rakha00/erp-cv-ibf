@@ -9,16 +9,16 @@ class BarangMasukDetail extends Model
 {
     use SoftDeletes;
 
-    protected $table = "barang_masuk_details";
+    protected $table = 'barang_masuk_details';
 
     protected $fillable = [
-        "barang_masuk_id",
-        "unit_produk_id",
-        "nama_unit",
-        "harga_modal",
-        "jumlah_barang_masuk",
-        "total_harga_modal",
-        "remarks",
+        'barang_masuk_id',
+        'unit_produk_id',
+        'nama_unit',
+        'harga_modal',
+        'jumlah_barang_masuk',
+        'total_harga_modal',
+        'remarks',
     ];
 
     public function barangMasuk()

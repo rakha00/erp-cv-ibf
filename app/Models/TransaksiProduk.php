@@ -9,7 +9,7 @@ class TransaksiProduk extends Model
 {
     use SoftDeletes;
 
-    protected $table = "transaksi_produks";
+    protected $table = 'transaksi_produks';
 
     protected $fillable = [
         'no_invoice',

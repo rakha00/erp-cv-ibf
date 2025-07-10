@@ -2,20 +2,16 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\UnitProdukExport;
 use App\Filament\Resources\UnitProdukResource\Pages;
-use App\Filament\Resources\UnitProdukResource\RelationManagers;
 use App\Models\UnitProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
-use Filament\Tables\Actions\Action;
-use App\Exports\UnitProdukExport;
-use Illuminate\Support\Facades\Blade;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UnitProdukResource extends Resource
 {
@@ -85,28 +81,17 @@ class UnitProdukResource extends Resource
                     ->label('Stok Akhir')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(
-                        fn(UnitProduk $record): int =>
-                        $record->stok_awal
-                        + $record->barangMasukDetails()->sum('jumlah_barang_masuk')
-                        - $record->transaksiProdukDetails()->sum('jumlah_keluar')
-                    ),
+                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokAkhir($record)),
                 Tables\Columns\TextColumn::make('stok_masuk')
                     ->label('Stok Masuk')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(
-                        fn(UnitProduk $record): int =>
-                        $record->barangMasukDetails()->sum('jumlah_barang_masuk')
-                    ),
+                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokMasuk($record)),
                 Tables\Columns\TextColumn::make('stok_keluar')
                     ->label('Stok Keluar')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(
-                        fn(UnitProduk $record): int =>
-                        $record->transaksiProdukDetails()->sum('jumlah_keluar')
-                    ),
+                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokKeluar($record)),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -141,8 +126,9 @@ class UnitProdukResource extends Resource
                         $livewire = $table->getLivewire();
                         $query = $livewire->getFilteredTableQuery();
                         $resourceTitle = static::$pluralModelLabel;
+
                         return \Maatwebsite\Excel\Facades\Excel::download(new UnitProdukExport($query, $resourceTitle), 'unit_produk.xlsx');
-                    })
+                    }),
             ]);
     }
 
@@ -160,5 +146,22 @@ class UnitProdukResource extends Resource
             'create' => Pages\CreateUnitProduk::route('/create'),
             'edit' => Pages\EditUnitProduk::route('/{record}/edit'),
         ];
+    }
+
+    private static function calculateStokAkhir(UnitProduk $record): int
+    {
+        return $record->stok_awal
+            + $record->barangMasukDetails()->sum('jumlah_barang_masuk')
+            - $record->transaksiProdukDetails()->sum('jumlah_keluar');
+    }
+
+    private static function calculateStokMasuk(UnitProduk $record): int
+    {
+        return $record->barangMasukDetails()->sum('jumlah_barang_masuk');
+    }
+
+    private static function calculateStokKeluar(UnitProduk $record): int
+    {
+        return $record->transaksiProdukDetails()->sum('jumlah_keluar');
     }
 }

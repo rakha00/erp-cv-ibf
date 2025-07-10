@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\DeliveryNotePdfController;
 use App\Http\Controllers\GajiKaryawanPdfController;
 use App\Http\Controllers\InvoicePdfController;
-use App\Http\Controllers\DeliveryNotePdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {

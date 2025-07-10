@@ -2,24 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\PiutangExport;
 use App\Filament\Resources\PiutangResource\Pages;
-use App\Filament\Resources\PiutangResource\RelationManagers;
 use App\Models\Piutang;
 use App\Models\TransaksiProduk;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
-use Filament\Forms\Get;
-use App\Exports\PiutangExport;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-
 
 class PiutangResource extends Resource
 {
@@ -45,7 +40,7 @@ class PiutangResource extends Resource
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn(Set $set, $state, ?Piutang $record) => self::updateTransaksiProdukDetails($set, $state, $record)),
+                    ->afterStateUpdated(fn (Set $set, $state, ?Piutang $record) => self::updateTransaksiProdukDetails($set, $state, $record)),
 
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
@@ -53,7 +48,7 @@ class PiutangResource extends Resource
                     ->prefix('Rp ')
                     ->disabled()
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
@@ -62,16 +57,12 @@ class PiutangResource extends Resource
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function (Set $set, Get $get, $state, $record = null) {
-                        $sudahDibayarLama = (float) str_replace(',', '', $record?->sudah_dibayar ?? '0');
-                        $pembayaranBaru = (float) str_replace(',', '', $state ?? '0');
-                        $totalBaru = $sudahDibayarLama + $pembayaranBaru;
-                        $set('sudah_dibayar', number_format($totalBaru, 0, '.', ','));
-                        $set('pembayaran_baru', number_format($pembayaranBaru, 0, '.', ','));
-                    })
+                    ->afterStateUpdated(fn (Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
                     ->dehydrateStateUsing(function ($state) {
-                        if (!$state)
+                        if (! $state) {
                             return null;
+                        }
+
                         return (float) str_replace(',', '', $state);
                     })
                     ->default(null),
@@ -82,7 +73,7 @@ class PiutangResource extends Resource
                     ->dehydrated()
                     ->prefix('Rp')
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
@@ -110,22 +101,32 @@ class PiutangResource extends Resource
             ]);
     }
 
+    private static function updatePembayaran(Set $set, Get $get, $state, $record = null): void
+    {
+        $sudahDibayarLama = (float) str_replace(',', '', $record?->sudah_dibayar ?? '0');
+        $pembayaranBaru = (float) str_replace(',', '', $state ?? '0');
+        $totalBaru = $sudahDibayarLama + $pembayaranBaru;
+        $set('sudah_dibayar', number_format($totalBaru, 0, '.', ','));
+        $set('pembayaran_baru', number_format($pembayaranBaru, 0, '.', ','));
+    }
+
     private static function updateTransaksiProdukDetails(Set $set, $state, ?Piutang $record = null): void
     {
-        if (!$state) {
-            if (!$record) {
+        if (! $state) {
+            if (! $record) {
                 $set('total_harga_modal', '');
             }
+
             return;
         }
 
         $transaksiProduk = TransaksiProduk::with(['transaksiProdukDetails'])->find($state);
 
-        if (!$transaksiProduk) {
+        if (! $transaksiProduk) {
             return;
         }
 
-        if (!$record) {
+        if (! $record) {
             $totalHargaJual = self::calculateTotalHargaJual($transaksiProduk);
             $set('total_harga_modal', number_format($totalHargaJual, 0, '.', ','));
         }
@@ -160,25 +161,21 @@ class PiutangResource extends Resource
                         'success' => 'sudah lunas',
                     ])
                     ->label('Status')
-                    ->formatStateUsing(fn($state) => ucwords($state)),
+                    ->formatStateUsing(fn ($state) => ucwords($state)),
                 Tables\Columns\TextColumn::make('sudah_dibayar')
                     ->numeric()
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ','))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ','))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('sisa_piutang')
                     ->label('Sisa Piutang')
                     ->prefix('Rp ')
-                    ->state(function ($record): string {
-                        $totalPiutang = (float) str_replace(',', '', $record->total_harga_modal ?? '0');
-                        $sudahDibayar = (float) ($record->sudah_dibayar ?? '0');
-                        return number_format($totalPiutang - $sudahDibayar, 0, '.', ',');
-                    })
+                    ->state(fn ($record): string => self::calculateSisaPiutang($record))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -215,9 +212,27 @@ class PiutangResource extends Resource
                         $livewire = $table->getLivewire();
                         $query = $livewire->getFilteredTableQuery();
                         $resourceTitle = static::$pluralModelLabel;
+
                         return \Maatwebsite\Excel\Facades\Excel::download(new PiutangExport($query, $resourceTitle), 'piutang.xlsx');
-                    })
+                    }),
             ]);
+    }
+
+    private static function exportPiutangExcel(Table $table): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $livewire = $table->getLivewire();
+        $query = $livewire->getFilteredTableQuery();
+        $resourceTitle = static::$pluralModelLabel;
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new PiutangExport($query, $resourceTitle), 'piutang.xlsx');
+    }
+
+    private static function calculateSisaPiutang($record): string
+    {
+        $totalPiutang = (float) str_replace(',', '', $record->total_harga_modal ?? '0');
+        $sudahDibayar = (float) ($record->sudah_dibayar ?? '0');
+
+        return number_format($totalPiutang - $sudahDibayar, 0, '.', ',');
     }
 
     public static function getRelations(): array
