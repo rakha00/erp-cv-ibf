@@ -37,7 +37,7 @@ class TransaksiProdukResource extends Resource
                     ->label('Tanggal')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(fn(?string $state, Forms\Set $set) => self::generateInvoiceAndDeliveryNoteNumbers($state, $set)),
+                    ->afterStateUpdated(fn (?string $state, Forms\Set $set) => self::generateInvoiceAndDeliveryNoteNumbers($state, $set)),
                 Forms\Components\TextInput::make('no_invoice')
                     ->label('No Invoice')
                     ->required()
@@ -104,12 +104,12 @@ class TransaksiProdukResource extends Resource
                     ->label('Total Harga Jual')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn(TransaksiProduk $record) => self::calculateTotalHargaJual($record)),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalHargaJual($record)),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn(TransaksiProduk $record) => self::calculateTotalKeuntungan($record)),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalKeuntungan($record)),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -132,14 +132,14 @@ class TransaksiProdukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn($year) => [$year => $year]);
+                            ->mapWithKeys(fn ($year) => [$year => $year]);
 
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereYear('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereYear('tanggal', $data['value'])
                         );
                     }),
 
@@ -162,7 +162,7 @@ class TransaksiProdukResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn(Builder $q) => $q->whereMonth('tanggal', $data['value'])
+                            fn (Builder $q) => $q->whereMonth('tanggal', $data['value'])
                         );
                     }),
 
@@ -177,7 +177,7 @@ class TransaksiProdukResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['from'] && $data['until'],
-                            fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
+                            fn (Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
             ])
@@ -195,7 +195,7 @@ class TransaksiProdukResource extends Resource
                                 'surat_jalan' => 'Surat Jalan',
                             ]),
                     ])
-                    ->action(fn(TransaksiProduk $record, array $data) => self::downloadDocument($record, $data)),
+                    ->action(fn (TransaksiProduk $record, array $data) => self::downloadDocument($record, $data)),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -208,12 +208,12 @@ class TransaksiProdukResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn(Table $table) => self::exportTransaksiProdukSummary($table)),
+                    ->action(fn (Table $table) => self::exportTransaksiProdukSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(fn(Table $table) => self::exportTransaksiProdukDetails($table)),
+                    ->action(fn (Table $table) => self::exportTransaksiProdukDetails($table)),
             ]);
     }
 
@@ -256,10 +256,10 @@ class TransaksiProdukResource extends Resource
         $view = '';
 
         if ($data['type'] === 'invoice') {
-            $filename = 'invoice-' . str_replace(['/', '\\'], '-', $record->no_invoice) . '.pdf';
+            $filename = 'invoice-'.str_replace(['/', '\\'], '-', $record->no_invoice).'.pdf';
             $view = 'pdf.invoice';
         } elseif ($data['type'] === 'surat_jalan') {
-            $filename = 'surat-jalan-' . str_replace(['/', '\\'], '-', $record->no_surat_jalan) . '.pdf';
+            $filename = 'surat-jalan-'.str_replace(['/', '\\'], '-', $record->no_surat_jalan).'.pdf';
             $view = 'pdf.surat-jalan';
         }
 

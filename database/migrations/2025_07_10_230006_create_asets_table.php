@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('jumlah_aset');
             $table->text('remarks')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
