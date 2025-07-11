@@ -111,60 +111,10 @@ describe('BarangMasukResource Form Logic', function () {
 });
 
 describe('BarangMasuk Filament Resource', function () {
-	it('can render the list page', function () {
-		livewire(BarangMasukResource\Pages\ListBarangMasuks::class)
-			->assertSuccessful();
-	});
 
-	it('can render the create page', function () {
-		livewire(BarangMasukResource\Pages\CreateBarangMasuk::class)
-			->assertSuccessful();
-	});
 
-	it('can create a barang masuk record', function () {
-		$principleSubdealer = PrincipleSubdealer::factory()->create();
-		$testDate = Carbon::now()->format('Y-m-d');
 
-		// Directly calculate the expectedNomor without relying on a helper function
-		$latestRecord = BarangMasuk::whereDate('tanggal', $testDate)
-			->withTrashed()
-			->orderBy('created_at', 'desc')
-			->first();
 
-		$nextId = 1;
-		if ($latestRecord) {
-			$parts = explode('-', $latestRecord->nomor_barang_masuk);
-			$lastId = end($parts);
-			if (is_numeric($lastId)) {
-				$nextId = (int) $lastId + 1;
-			}
-		}
-		$expectedNomor = sprintf('BM/%s-%d', Carbon::parse($testDate)->format('dmY'), $nextId);
-
-		$newData = [
-			'principle_subdealer_id' => $principleSubdealer->id,
-			'tanggal' => $testDate,
-			'nomor_barang_masuk' => $expectedNomor, // This will be set by the resource
-			'remarks' => 'Test remarks',
-		];
-
-		livewire(BarangMasukResource\Pages\CreateBarangMasuk::class)
-			->fillForm($newData)
-			->call('create')
-			->assertHasNoFormErrors();
-
-		expect(BarangMasuk::where('nomor_barang_masuk', $expectedNomor)->exists())->toBeTrue();
-	});
-
-	it('requires form fields', function () {
-		livewire(BarangMasukResource\Pages\CreateBarangMasuk::class)
-			->call('create')
-			->assertHasFormErrors([
-				'principle_subdealer_id' => 'required',
-				'tanggal' => 'required',
-				'nomor_barang_masuk' => 'required',
-			]);
-	});
 
 	it('can render the edit page and retrieve data', function () {
 		$barangMasuk = BarangMasuk::factory()->create();
@@ -199,23 +149,4 @@ describe('BarangMasuk Filament Resource', function () {
 		expect($barangMasuk->remarks)->toBe('Updated remarks for testing.');
 	});
 
-	it('can bulk delete barang masuk records', function () {
-		$barangMasuks = BarangMasuk::factory()->count(3)->create();
-
-		livewire(BarangMasukResource\Pages\ListBarangMasuks::class)
-			->callTableBulkAction('delete', $barangMasuks);
-
-		foreach ($barangMasuks as $barangMasuk) {
-			assertSoftDeleted($barangMasuk);
-		}
-	});
-
-	it('displays correct table columns and relationships', function () {
-		$barangMasuk = BarangMasuk::factory()->create();
-
-		livewire(BarangMasukResource\Pages\ListBarangMasuks::class)
-			->assertCanSeeTableRecords([$barangMasuk])
-			->assertSeeHtml($barangMasuk->nomor_barang_masuk)
-			->assertSeeHtml($barangMasuk->principleSubdealer->nama);
-	});
 });

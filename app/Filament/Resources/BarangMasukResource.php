@@ -123,7 +123,7 @@ class BarangMasukResource extends Resource
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(function () {
-                        $years = BarangMasuk::selectRaw("strftime('%Y', tanggal) as year")
+                        $years = BarangMasuk::selectRaw("extract(year from tanggal) as year")
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
