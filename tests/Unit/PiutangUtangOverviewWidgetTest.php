@@ -5,8 +5,8 @@ use App\Models\Piutang;
 use App\Models\Utang;
 use function Pest\Livewire\livewire;
 
-describe('PiutangUtangOverview Widget', function () {
-	it('displays the correct total piutang and utang values', function () {
+describe('Receivables and Payables Overview', function () {
+	it('displays total receivables and total payables', function () {
 		// Create dummy data for Piutang
 		Piutang::factory()->create([
 			'total_harga_modal' => 5000000,
@@ -55,7 +55,7 @@ describe('PiutangUtangOverview Widget', function () {
 			->assertSeeHtml($expectedTotalUtang);
 	});
 
-	it('handles zero piutang and utang correctly', function () {
+	it('handles zero receivables and payables', function () {
 		// No dummy data created, so totals should be zero
 
 		livewire(PiutangUtangOverview::class)
@@ -65,7 +65,7 @@ describe('PiutangUtangOverview Widget', function () {
 			->assertSeeHtml('Rp 0');
 	});
 
-	it('displays correct number of columns', function () {
+	it('displays correct column count', function () {
 		$widget = new PiutangUtangOverview();
 		expect($widget->getColumns())->toBe(2);
 	});

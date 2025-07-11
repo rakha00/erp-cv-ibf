@@ -5,8 +5,8 @@ use App\Models\BarangMasukDetail;
 use App\Models\TransaksiProdukDetail;
 use function Pest\Livewire\livewire;
 
-describe('TransaksiBarangOverview Widget', function () {
-	it('displays the correct total product transactions and total incoming goods', function () {
+describe('Transaction and Incoming Goods Overview', function () {
+	it('displays total product transactions and total incoming goods', function () {
 		// Create dummy data for TransaksiProdukDetail
 		TransaksiProdukDetail::factory()->create([
 			'harga_jual' => 100000,
@@ -37,7 +37,7 @@ describe('TransaksiBarangOverview Widget', function () {
 			->assertSeeHtml($expectedTotalBarangMasuk);
 	});
 
-	it('handles zero product transactions and incoming goods correctly', function () {
+	it('handles zero product transactions and incoming goods', function () {
 		// No dummy data created, so totals should be zero
 
 		livewire(TransaksiBarangOverview::class)
@@ -47,7 +47,7 @@ describe('TransaksiBarangOverview Widget', function () {
 			->assertSeeHtml('Rp 0');
 	});
 
-	it('displays correct number of columns', function () {
+	it('displays correct column count', function () {
 		$widget = new TransaksiBarangOverview();
 		expect($widget->getColumns())->toBe(2);
 	});

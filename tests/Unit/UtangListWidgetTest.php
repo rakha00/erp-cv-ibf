@@ -5,8 +5,8 @@ use App\Models\Utang;
 use App\Models\BarangMasuk;
 use function Pest\Livewire\livewire;
 
-describe('UtangList Widget', function () {
-	it('displays only outstanding and partially paid debts', function () {
+describe('Outstanding Payables List', function () {
+	it('displays only outstanding and partially paid payables', function () {
 		// Create some dummy data
 		$barangMasuk1 = BarangMasuk::factory()->create(['nomor_barang_masuk' => 'BM-001']);
 		$barangMasuk2 = BarangMasuk::factory()->create(['nomor_barang_masuk' => 'BM-002']);
@@ -36,7 +36,7 @@ describe('UtangList Widget', function () {
 			->assertDontSeeHtml('BM-003');
 	});
 
-	it('displays correct number of columns', function () {
+	it('displays correct column count', function () {
 		$widget = new UtangList();
 		expect($widget->getColumns())->toBe(2);
 	});

@@ -5,7 +5,7 @@ use App\Models\Piutang;
 use App\Models\TransaksiProduk;
 use function Pest\Livewire\livewire;
 
-describe('PiutangList Widget', function () {
+describe('Outstanding Receivables List', function () {
 	it('displays only outstanding and partially paid receivables', function () {
 		// Create some dummy data
 		$transaksiProduk1 = TransaksiProduk::factory()->create(['no_invoice' => 'INV-001']);
@@ -36,7 +36,7 @@ describe('PiutangList Widget', function () {
 			->assertDontSeeHtml('INV-003');
 	});
 
-	it('displays correct number of columns', function () {
+	it('displays correct column count', function () {
 		$widget = new PiutangList();
 		expect($widget->getColumns())->toBe(2);
 	});

@@ -5,8 +5,8 @@ use App\Models\Aset;
 use App\Models\Karyawan;
 use function Pest\Livewire\livewire;
 
-describe('AsetKaryawanOverview Widget', function () {
-	it('displays the correct total asset value and employee count', function () {
+describe('Aset and Karyawan Overview', function () {
+	it('displays total asset value and total employee count', function () {
 		// Create dummy data using factories
 		Aset::factory()->create(['harga' => 1000000]);
 		Aset::factory()->create(['harga' => 2500000]);
@@ -19,7 +19,7 @@ describe('AsetKaryawanOverview Widget', function () {
 			->assertSeeHtml('5');
 	});
 
-	it('handles zero assets and employees correctly', function () {
+	it('handles zero assets and employees', function () {
 		// No dummy data created, so counts should be zero
 
 		livewire(AsetKaryawanOverview::class)
@@ -29,7 +29,7 @@ describe('AsetKaryawanOverview Widget', function () {
 			->assertSeeHtml('0');
 	});
 
-	it('displays correct number of columns', function () {
+	it('displays correct column count', function () {
 		// This test doesn't require Livewire component rendering as getColumns is a static method
 		$widget = new AsetKaryawanOverview();
 		expect($widget->getColumns())->toBe(2);
