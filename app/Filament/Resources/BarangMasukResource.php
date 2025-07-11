@@ -42,7 +42,7 @@ class BarangMasukResource extends Resource
                     ->label('Tanggal')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(fn (?string $state, Forms\Set $set) => self::generateNomorBarangMasuk($state, $set)),
+                    ->afterStateUpdated(fn(?string $state, Forms\Set $set) => self::generateNomorBarangMasuk($state, $set)),
                 Forms\Components\TextInput::make('nomor_barang_masuk')
                     ->label('Nomor Barang Masuk')
                     ->required()
@@ -101,7 +101,7 @@ class BarangMasukResource extends Resource
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
-                    ->state(fn (BarangMasuk $record): string => self::calculateTotalHargaModal($record))
+                    ->state(fn(BarangMasuk $record): string => self::calculateTotalHargaModal($record))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
@@ -118,23 +118,23 @@ class BarangMasukResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('tanggal', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('barangMasukDetails'))
+            ->modifyQueryUsing(fn(Builder $query) => $query->with('barangMasukDetails'))
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(function () {
-                        $years = BarangMasuk::selectRaw('extract(year from tanggal) as year')
+                        $years = BarangMasuk::selectRaw("strftime('%Y', tanggal) as year")
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                            ->mapWithKeys(fn($year) => [$year => $year]);
 
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $q) => $q->whereYear('tanggal', $data['value'])
+                            fn(Builder $q) => $q->whereYear('tanggal', $data['value'])
                         );
                     }),
 
@@ -157,7 +157,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $q) => $q->whereMonth('tanggal', $data['value'])
+                            fn(Builder $q) => $q->whereMonth('tanggal', $data['value'])
                         );
                     }),
 
@@ -172,7 +172,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['from'] && $data['until'],
-                            fn (Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
+                            fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
             ])
@@ -189,12 +189,12 @@ class BarangMasukResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn (Table $table) => self::exportAllSummary($table)),
+                    ->action(fn(Table $table) => self::exportAllSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(fn (Table $table) => self::exportAllDetails($table)),
+                    ->action(fn(Table $table) => self::exportAllDetails($table)),
             ]);
     }
 
