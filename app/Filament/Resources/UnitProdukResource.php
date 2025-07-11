@@ -81,17 +81,17 @@ class UnitProdukResource extends Resource
                     ->label('Stok Akhir')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokAkhir($record)),
+                    ->getStateUsing(fn(UnitProduk $record): int => self::calculateStokAkhir($record)),
                 Tables\Columns\TextColumn::make('stok_masuk')
                     ->label('Stok Masuk')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokMasuk($record)),
+                    ->getStateUsing(fn(UnitProduk $record): int => self::calculateStokMasuk($record)),
                 Tables\Columns\TextColumn::make('stok_keluar')
                     ->label('Stok Keluar')
                     ->numeric()
                     ->sortable()
-                    ->getStateUsing(fn (UnitProduk $record): int => self::calculateStokKeluar($record)),
+                    ->getStateUsing(fn(UnitProduk $record): int => self::calculateStokKeluar($record)),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
