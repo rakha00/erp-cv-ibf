@@ -17,7 +17,8 @@
             <tr>
                 <td style="padding: 5px 0;"></td>
                 <td style="padding: 5px 0; text-align: right;">
-                    {{ strtoupper(\Carbon\Carbon::create()->month($bulan)->format('F')) }} {{ $tahun }}</td>
+                    {{ strtoupper(\Carbon\Carbon::create()->month($bulan)->format('F')) }} {{ $tahun }}
+                </td>
             </tr>
         </table>
 
@@ -75,7 +76,8 @@
             <tr>
                 <td style="padding: 3px 5px;">Tunjangan Transportasi</td>
                 <td style="padding: 3px 5px; text-align: right;">
-                    {{ number_format($tunjangan_transportasi, 0, ',', '.') }}</td>
+                    {{ number_format($tunjangan_transportasi, 0, ',', '.') }}
+                </td>
                 <td style="padding: 3px 5px;"></td>
                 <td style="padding: 3px 5px;"></td>
             </tr>
@@ -96,13 +98,15 @@
                     Penerimaan</td>
                 <td
                     style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 5px; text-align: right;">
-                    {{ number_format($totalPenerimaan, 0, ',', '.') }}</td>
+                    {{ number_format($totalPenerimaan, 0, ',', '.') }}
+                </td>
                 <td
                     style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 5px; padding-left: 20px;">
                     Total Potongan</td>
                 <td
                     style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 5px; text-align: right;">
-                    {{ number_format($totalPotongan, 0, ',', '.') }}</td>
+                    {{ number_format($totalPotongan, 0, ',', '.') }}
+                </td>
             </tr>
             <tr>
                 <td colspan="4" style="padding: 3px 5px; font-weight: bold;">&nbsp;</td>
@@ -127,7 +131,7 @@
                 <td style="width: 50%; padding: 2px 5px;">Penerima,</td>
             </tr>
             <tr>
-                <td style="width: 50%; padding: 2px 5px; padding-top: 50px;">( Dhian Kurniasari )</td>
+                <td style="width: 50%; padding: 2px 5px; padding-top: 50px;">( - )</td>
                 <td style="width: 50%; padding: 2px 5px; padding-top: 50px;">( {{ $karyawan->nama }} )</td>
             </tr>
             <tr>
