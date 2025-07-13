@@ -35,7 +35,7 @@ class BarangMasukResource extends Resource
             ->schema([
                 Forms\Components\Select::make('principle_subdealer_id')
                     ->label('Principle/Subdealer')
-                    ->options(PrincipleSubdealer::pluck('nama', 'id'))
+                    ->options(fn (callable $get): array => self::getPrincipleSubdealerOptions($get))
                     ->searchable()
                     ->required(),
                 Forms\Components\DatePicker::make('tanggal')
@@ -83,6 +83,28 @@ class BarangMasukResource extends Resource
         }
     }
 
+    private static function getPrincipleSubdealerOptions(callable $get): array
+    {
+        $principles = PrincipleSubdealer::query()->get();
+        $selectedPrincipleId = $get('principle_subdealer_id');
+
+        if ($selectedPrincipleId && ! $principles->contains('id', $selectedPrincipleId)) {
+            $deletedPrinciple = PrincipleSubdealer::withTrashed()->find($selectedPrincipleId);
+            if ($deletedPrinciple) {
+                $principles->add($deletedPrinciple);
+            }
+        }
+
+        return $principles->mapWithKeys(function ($principle) {
+            $label = "{$principle->nama}";
+            if ($principle->trashed()) {
+                $label .= ' (Dihapus)';
+            }
+
+            return [$principle->id => $label];
+        })->all();
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -93,7 +115,10 @@ class BarangMasukResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('principleSubdealer.nama')
                     ->label('Principle/Subdealer')
-                    ->sortable(),
+                    ->sortable()
+                    ->color(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'danger' : null)
+                    ->icon(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null),
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
                     ->date()
@@ -118,7 +143,7 @@ class BarangMasukResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('tanggal', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('barangMasukDetails'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['barangMasukDetails', 'principleSubdealer' => fn ($query) => $query->withTrashed()]))
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
