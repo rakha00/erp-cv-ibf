@@ -10,6 +10,7 @@ use App\Models\PrincipleSubdealer;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
@@ -35,14 +36,14 @@ class BarangMasukResource extends Resource
             ->schema([
                 Forms\Components\Select::make('principle_subdealer_id')
                     ->label('Principle/Subdealer')
-                    ->options(fn (callable $get): array => self::getPrincipleSubdealerOptions($get))
+                    ->options(fn(callable $get): array => self::getPrincipleSubdealerOptions($get))
                     ->searchable()
                     ->required(),
                 Forms\Components\DatePicker::make('tanggal')
                     ->label('Tanggal')
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(fn (?string $state, Forms\Set $set) => self::generateNomorBarangMasuk($state, $set)),
+                    ->afterStateUpdated(fn(?string $state, Forms\Set $set) => self::generateNomorBarangMasuk($state, $set)),
                 Forms\Components\TextInput::make('nomor_barang_masuk')
                     ->label('Nomor Barang Masuk')
                     ->required()
@@ -88,7 +89,7 @@ class BarangMasukResource extends Resource
         $principles = PrincipleSubdealer::query()->get();
         $selectedPrincipleId = $get('principle_subdealer_id');
 
-        if ($selectedPrincipleId && ! $principles->contains('id', $selectedPrincipleId)) {
+        if ($selectedPrincipleId && !$principles->contains('id', $selectedPrincipleId)) {
             $deletedPrinciple = PrincipleSubdealer::withTrashed()->find($selectedPrincipleId);
             if ($deletedPrinciple) {
                 $principles->add($deletedPrinciple);
@@ -116,9 +117,9 @@ class BarangMasukResource extends Resource
                 Tables\Columns\TextColumn::make('principleSubdealer.nama')
                     ->label('Principle/Subdealer')
                     ->sortable()
-                    ->color(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'danger' : null)
-                    ->icon(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
-                    ->tooltip(fn ($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null),
+                    ->color(fn($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'danger' : null)
+                    ->icon(fn($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn($record) => $record->principleSubdealer()->withTrashed()->first()?->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null),
                 Tables\Columns\TextColumn::make('tanggal')
                     ->label('Tanggal')
                     ->date()
@@ -126,8 +127,16 @@ class BarangMasukResource extends Resource
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
-                    ->state(fn (BarangMasuk $record): string => self::calculateTotalHargaModal($record))
-                    ->sortable(),
+                    ->state(fn(BarangMasuk $record): string => self::calculateTotalHargaModal($record))
+                    ->sortable()
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Harga Modal')
+                            ->prefix('Rp ')
+                            ->numeric()
+                            ->using(fn(\Illuminate\Database\Query\Builder $query): float => $query->join('barang_masuk_details', 'barang_masuks.id', '=', 'barang_masuk_details.barang_masuk_id')
+                                ->sum(\Illuminate\Support\Facades\DB::raw('barang_masuk_details.harga_modal * barang_masuk_details.jumlah_barang_masuk')))
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -143,7 +152,7 @@ class BarangMasukResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('tanggal', 'desc')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['barangMasukDetails', 'principleSubdealer' => fn ($query) => $query->withTrashed()]))
+            ->modifyQueryUsing(fn(Builder $query) => $query->with(['barangMasukDetails', 'principleSubdealer' => fn($query) => $query->withTrashed()]))
             ->filters([
                 Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
@@ -152,14 +161,14 @@ class BarangMasukResource extends Resource
                             ->distinct()
                             ->orderBy('year', 'desc')
                             ->pluck('year')
-                            ->mapWithKeys(fn ($year) => [$year => $year]);
+                            ->mapWithKeys(fn($year) => [$year => $year]);
 
                         return $years;
                     })
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $q) => $q->whereYear('tanggal', $data['value'])
+                            fn(Builder $q) => $q->whereYear('tanggal', $data['value'])
                         );
                     }),
 
@@ -182,7 +191,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $q) => $q->whereMonth('tanggal', $data['value'])
+                            fn(Builder $q) => $q->whereMonth('tanggal', $data['value'])
                         );
                     }),
 
@@ -197,7 +206,7 @@ class BarangMasukResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['from'] && $data['until'],
-                            fn (Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
+                            fn(Builder $q) => $q->whereBetween('tanggal', [$data['from'], $data['until']])
                         );
                     }),
             ])
@@ -214,12 +223,12 @@ class BarangMasukResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn (Table $table) => self::exportAllSummary($table)),
+                    ->action(fn(Table $table) => self::exportAllSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(fn (Table $table) => self::exportAllDetails($table)),
+                    ->action(fn(Table $table) => self::exportAllDetails($table)),
             ]);
     }
 
