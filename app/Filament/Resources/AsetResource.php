@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Table;
 
 class AsetResource extends Resource
@@ -81,7 +82,13 @@ class AsetResource extends Resource
                     ->label('Total Harga Aset')
                     ->numeric()
                     ->getStateUsing(fn (Aset $record): float => $record->harga * $record->jumlah_aset)
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Harga Aset')
+                            ->prefix('Rp ')
+                            ->using(fn (\Illuminate\Database\Query\Builder $query): string => number_format($query->sum(\Illuminate\Support\Facades\DB::raw('harga * jumlah_aset')), 0, '.', ','))
+                    ),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
