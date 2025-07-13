@@ -24,7 +24,7 @@
 						@endif
 						<p class="text-sm font-medium uppercase">{{ $stat->getLabel() }}</p>
 					</div>
-					<p class="text-2xl font-bold text-gray-900 dark:text-white mt-2">{{ $stat->getValue() }}</p>
+					<p class="text-3xl font-semibold text-gray-900 dark:text-white mt-2">{{ $stat->getValue() }}</p>
 					@if ($stat->getDescription())
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $stat->getDescription() }}</p>
 					@endif

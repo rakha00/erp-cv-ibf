@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\BarangMasukDetail;
+use App\Models\Karyawan;
 use App\Models\PenghasilanKaryawanDetail;
 use App\Models\TransaksiProdukDetail;
 use Filament\Forms\Components\Select;
@@ -82,9 +83,10 @@ class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements H
 		$month = $this->month ?? Carbon::now()->month;
 
 		// Calculate Total Gaji Karyawan (sebelum dikurang kasbon)
-		$totalGajiKaryawan = PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-			->whereMonth('tanggal', $month)
-			->sum('bonus_target') +
+		$totalGajiKaryawan = Karyawan::sum('gaji_pokok') +
+			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+				->whereMonth('tanggal', $month)
+				->sum('bonus_target') +
 			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
 				->whereMonth('tanggal', $month)
 				->sum('uang_makan') +
@@ -101,14 +103,8 @@ class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements H
 				->whereMonth('tanggal', $month);
 		})->sum('total_keuntungan');
 
-		// Calculate Total Expenses from incoming goods
-		$totalExpenses = BarangMasukDetail::whereHas('barangMasuk', function ($query) use ($year, $month) {
-			$query->whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month);
-		})->sum('total_harga_modal');
-
 		// Calculate Total Keuntungan Kantor (sudah dikurang total gaji karyawan)
-		$totalKeuntunganKantor = $totalIncome - $totalExpenses - $totalGajiKaryawan;
+		$totalKeuntunganKantor = $totalIncome - $totalGajiKaryawan;
 
 		return [
 			Stat::make('Total Keuntungan Kantor', 'Rp ' . number_format($totalKeuntunganKantor, 0, ',', '.'))
