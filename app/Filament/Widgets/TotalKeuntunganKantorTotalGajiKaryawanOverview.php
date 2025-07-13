@@ -22,6 +22,8 @@ class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements H
 
 	protected static ?int $sort = 1;
 
+	protected int|string|array $columnSpan = 'full';
+
 	public ?int $year;
 	public ?int $month;
 
@@ -43,7 +45,7 @@ class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements H
 					})
 					->live()
 					->afterStateUpdated(function ($state) {
-						$this->month = $state;
+						$this->year = $state;
 					}),
 				Select::make('month')
 					->options([

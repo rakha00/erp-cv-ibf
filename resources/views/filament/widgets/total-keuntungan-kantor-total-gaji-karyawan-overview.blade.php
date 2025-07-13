@@ -1,16 +1,23 @@
 <x-filament-widgets::widget>
 	<x-filament::section>
-		<x-slot name="heading">
-			Total Keuntungan Kantor & Total Gaji Karyawan Overview
-		</x-slot>
 
-		<form wire:submit.prevent="updateStats" class="p-4">
-			{{ $this->form }}
-		</form>
+		<div style="position: relative;">
+			<form wire:submit.prevent="updateStats"
+				style="position: absolute; right: 16px; display: flex; gap: 8px; align-items: center;">
+				<div style="display: flex; flex-wrap: nowrap; gap: 8px;">
+					<div style="width: 100px; font-size: 14px;">
+						{{ $this->form->getComponent('year') }}
+					</div>
+					<div style="width: 100px; font-size: 14px;">
+						{{ $this->form->getComponent('month') }}
+					</div>
+				</div>
+			</form>
+		</div>
 
-		<div class="grid grid-cols-2 gap-4 mt-4">
+		<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 80px;">
 			@foreach ($stats as $stat)
-				<div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+				<div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800" style="width: 100%;">
 					<div class="flex items-center text-gray-500 dark:text-gray-400">
 						@if ($stat->getIcon())
 							<x-filament::icon icon="{{$stat->getIcon()}}" class="w-5 h-5" style="margin-right: 8px;" />
