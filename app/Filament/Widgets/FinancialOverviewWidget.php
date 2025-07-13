@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\BarangMasukDetail;
 use App\Models\Karyawan;
 use App\Models\PenghasilanKaryawanDetail;
 use App\Models\TransaksiProdukDetail;
@@ -13,12 +14,13 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Widgets\Widget;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
-class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements HasForms
+class FinancialOverviewWidget extends Widget implements HasForms
 {
     use InteractsWithForms;
 
-    protected static string $view = 'filament.widgets.total-keuntungan-kantor-total-gaji-karyawan-overview';
+    protected static string $view = 'filament.widgets.financial-overview-widget';
 
     protected static ?int $sort = 1;
 
@@ -107,12 +109,31 @@ class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements H
         // Calculate Total Keuntungan Kantor (sudah dikurang total gaji karyawan)
         $totalKeuntunganKantor = $totalIncome - $totalGajiKaryawan;
 
+        // Calculate Total Transaksi Produk (with year and month filter)
+        $totalTransaksiProduk = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
+            $query->whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month);
+        })->sum(DB::raw('harga_jual * jumlah_keluar'));
+
+        // Calculate Total Barang Masuk (with year and month filter)
+        $totalBarangMasuk = BarangMasukDetail::whereHas('barangMasuk', function ($query) use ($year, $month) {
+            $query->whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month);
+        })->sum(DB::raw('harga_modal * jumlah_barang_masuk'));
+
+
         return [
-            Stat::make('Total Keuntungan Kantor', 'Rp '.number_format($totalKeuntunganKantor, 0, ',', '.'))
+            Stat::make('Total Keuntungan Kantor', 'Rp ' . number_format($totalKeuntunganKantor, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color($totalKeuntunganKantor >= 0 ? 'success' : 'danger'),
-            Stat::make('Total Gaji Karyawan', 'Rp '.number_format($totalGajiKaryawan, 0, ',', '.'))
+            Stat::make('Total Gaji Karyawan', 'Rp ' . number_format($totalGajiKaryawan, 0, ',', '.'))
                 ->icon('heroicon-o-users')
+                ->color('info'),
+            Stat::make('Total Transaksi Produk', 'Rp ' . number_format($totalTransaksiProduk, 0, ',', '.'))
+                ->icon('heroicon-o-currency-dollar')
+                ->color('success'),
+            Stat::make('Total Barang Masuk', 'Rp ' . number_format($totalBarangMasuk, 0, ',', '.'))
+                ->icon('heroicon-o-archive-box')
                 ->color('info'),
         ];
     }

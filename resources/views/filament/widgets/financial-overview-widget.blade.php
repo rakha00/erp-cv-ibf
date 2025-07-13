@@ -15,7 +15,7 @@
 			</form>
 		</div>
 
-		<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 80px;">
+		<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 80px;">
 			@foreach ($stats as $stat)
 				<div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800" style="width: 100%;">
 					<div class="flex items-center text-gray-500 dark:text-gray-400">
