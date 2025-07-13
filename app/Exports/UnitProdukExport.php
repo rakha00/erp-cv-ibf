@@ -3,10 +3,12 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 
-class UnitProdukExport extends BaseExport implements FromCollection, WithHeadings, WithMapping
+class UnitProdukExport extends BaseExport implements FromCollection, WithColumnFormatting, WithHeadings, WithMapping, WithStrictNullComparison
 {
     protected $query;
 
@@ -14,6 +16,16 @@ class UnitProdukExport extends BaseExport implements FromCollection, WithHeading
     {
         parent::__construct($resourceTitle);
         $this->query = $query;
+    }
+
+    /**
+     * Defines column formatting for the Excel sheet.
+     */
+    public function columnFormats(): array
+    {
+        return [
+            'C' => '"Rp "#,##0',
+        ];
     }
 
     /**
@@ -27,7 +39,6 @@ class UnitProdukExport extends BaseExport implements FromCollection, WithHeading
     public function headings(): array
     {
         return [
-            'ID',
             'SKU',
             'Nama Unit',
             'Harga Modal/Unit',
@@ -39,6 +50,11 @@ class UnitProdukExport extends BaseExport implements FromCollection, WithHeading
         ];
     }
 
+    /**
+     * Maps a unit produk to an array for the Excel row.
+     *
+     * @param  \App\Models\UnitProduk  $unitProduk
+     */
     public function map($unitProduk): array
     {
         $stokMasuk = $unitProduk->barangMasukDetails->sum('jumlah_barang_masuk');
@@ -46,7 +62,6 @@ class UnitProdukExport extends BaseExport implements FromCollection, WithHeading
         $stokAkhir = $unitProduk->stok_awal + $stokMasuk - $stokKeluar;
 
         return [
-            $unitProduk->id,
             $unitProduk->sku,
             $unitProduk->nama_unit,
             $unitProduk->harga_modal,
