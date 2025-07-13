@@ -27,7 +27,6 @@ class PrincipleSubdealerExport extends BaseExport implements FromCollection, Wit
     public function headings(): array
     {
         return [
-            'ID',
             'Nama',
             'Sales',
             'No HP',
@@ -38,7 +37,6 @@ class PrincipleSubdealerExport extends BaseExport implements FromCollection, Wit
     public function map($principleSubdealer): array
     {
         return [
-            $principleSubdealer->id,
             $principleSubdealer->nama,
             $principleSubdealer->sales,
             $principleSubdealer->no_hp,
