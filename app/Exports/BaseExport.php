@@ -11,9 +11,18 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 abstract class BaseExport implements WithEvents, WithTitle
 {
-    protected $resourceTitle;
+    protected string $resourceTitle;
 
-    public function __construct($resourceTitle = 'Laporan')
+    // Constants for better readability and maintainability
+    private const HEADER_ROWS_COUNT = 3;
+
+    private const COMPANY_NAME = 'CV. Inti Bintang Fortuna';
+
+    private const PRINT_DATE_PREFIX = 'Tanggal Cetak: ';
+
+    private const COLUMN_WIDTH_PADDING = 2;
+
+    public function __construct(string $resourceTitle = 'Laporan')
     {
         $this->resourceTitle = $resourceTitle;
     }
@@ -23,12 +32,17 @@ abstract class BaseExport implements WithEvents, WithTitle
         return $this->resourceTitle;
     }
 
-    public static function simple_column_width_calculator($data)
+    /**
+     * Calculates optimal column widths based on content.
+     */
+    public static function calculateColumnWidths(array $data): array
     {
         $max_widths = [];
         foreach ($data as $row) {
             foreach ($row as $col_index => $cell_value) {
-                $max_widths[$col_index] = max($max_widths[$col_index] ?? 0, (int) strlen((string) $cell_value));
+                // Ensure cell_value is treated as a string for strlen
+                $cell_length = strlen((string) $cell_value);
+                $max_widths[$col_index] = max($max_widths[$col_index] ?? 0, $cell_length);
             }
         }
 
@@ -40,43 +54,97 @@ abstract class BaseExport implements WithEvents, WithTitle
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->insertNewRowBefore(1, 3); // Insert 3 rows at the top
 
-                $numColumns = count($this->headings()); // This method will be implemented by child classes
+                $header_row_data = $this->headings();
+                $numColumns = count($header_row_data);
 
-                // Merge cells for the title
-                $sheet->mergeCells('A1:'.Coordinate::stringFromColumnIndex($numColumns).'1');
-                $sheet->setCellValue('A1', 'CV. Inti Bintang Fortuna');
-                $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-                $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Insert header rows
+                $this->addHeaderRows($sheet);
 
-                $sheet->mergeCells('A2:'.Coordinate::stringFromColumnIndex($numColumns).'2');
-                $sheet->setCellValue('A2', $this->resourceTitle);
-                $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
-                $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Set company and resource title
+                $this->setCompanyAndResourceTitle($sheet, $numColumns);
 
-                // Add print date
-                $sheet->setCellValue('A3', 'Tanggal Cetak: '.Carbon::now()->format('d-m-Y H:i:s'));
-                $sheet->mergeCells('A3:'.Coordinate::stringFromColumnIndex($numColumns).'3');
-                $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Set print date
+                $this->setPrintDate($sheet, $numColumns);
 
                 // Set column widths based on content
-                $header_row = $this->headings();
-                $data_rows = $this->collection()->map(function ($item) {
-                    return $this->map($item);
-                })->toArray();
-                $all_rows = array_merge([$header_row], $data_rows);
-
-                $max_widths = self::simple_column_width_calculator($all_rows);
-
-                if (! empty($max_widths)) {
-                    foreach ($max_widths as $col_index => $width) {
-                        $column_letter = Coordinate::stringFromColumnIndex((int) $col_index + 1);
-                        $event->sheet->getColumnDimension($column_letter)->setWidth((float) $width + 2);
-                    }
-                }
+                $this->setColumnWidths($event->sheet, $header_row_data);
             },
         ];
+    }
+
+    /**
+     * Inserts new rows at the top of the sheet for headers.
+     */
+    private function addHeaderRows($sheet): void
+    {
+        $sheet->insertNewRowBefore(1, self::HEADER_ROWS_COUNT);
+    }
+
+    /**
+     * Sets the company name and resource title in the header.
+     */
+    private function setCompanyAndResourceTitle($sheet, int $numColumns): void
+    {
+        $lastColumn = Coordinate::stringFromColumnIndex($numColumns);
+
+        // Company Name
+        $sheet->mergeCells('A1:'.$lastColumn.'1');
+        $sheet->setCellValue('A1', self::COMPANY_NAME);
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 14,
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+            ],
+        ]);
+
+        // Resource Title
+        $sheet->mergeCells('A2:'.$lastColumn.'2');
+        $sheet->setCellValue('A2', $this->resourceTitle);
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+            ],
+        ]);
+    }
+
+    /**
+     * Sets the print date in the header.
+     */
+    private function setPrintDate($sheet, int $numColumns): void
+    {
+        $lastColumn = Coordinate::stringFromColumnIndex($numColumns);
+        $sheet->setCellValue('A3', self::PRINT_DATE_PREFIX.Carbon::now()->format('d-m-Y H:i:s'));
+        $sheet->mergeCells('A3:'.$lastColumn.'3');
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    }
+
+    /**
+     * Calculates and sets optimal column widths.
+     */
+    private function setColumnWidths(object $excelSheet, array $headerRowData): void
+    {
+        $data_rows = $this->collection()->map(function ($item) {
+            return $this->map($item);
+        })->toArray();
+
+        $all_rows = array_merge([$headerRowData], $data_rows);
+
+        $max_widths = self::calculateColumnWidths($all_rows);
+
+        if (! empty($max_widths)) {
+            foreach ($max_widths as $col_index => $width) {
+                $column_letter = Coordinate::stringFromColumnIndex((int) $col_index + 1);
+                $excelSheet->getColumnDimension($column_letter)->setWidth((float) $width + self::COLUMN_WIDTH_PADDING);
+            }
+        }
     }
 
     // Abstract methods to be implemented by child classes
