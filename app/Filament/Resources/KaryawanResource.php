@@ -13,8 +13,11 @@ use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class KaryawanResource extends Resource
 {
@@ -89,22 +92,71 @@ class KaryawanResource extends Resource
                     ->label('Gaji Pokok')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(Sum::make()->label('Total Gaji Pokok')->prefix('Rp ')),
                 Tables\Columns\TextColumn::make('total_penerimaan')
                     ->label('Total Penerimaan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(fn (Karyawan $record, $livewire) => self::calculateTotalPenerimaan($record, $livewire)),
+                    ->state(fn(Karyawan $record, $livewire) => self::calculateTotalPenerimaan($record, $livewire))
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Penerimaan')
+                            ->prefix('Rp ')
+                            ->using(function (QueryBuilder $query, $livewire): float {
+                                $total = 0;
+                                $karyawanIds = $query->pluck('id')->toArray();
+                                $karyawans = \App\Models\Karyawan::whereIn('id', $karyawanIds)->get();
+
+                                foreach ($karyawans as $record) {
+                                    $total += self::calculateTotalPenerimaan($record, $livewire);
+                                }
+                                return $total;
+                            })
+                            ->numeric()
+                    ),
                 Tables\Columns\TextColumn::make('total_potongan')
                     ->label('Total Potongan')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(fn (Karyawan $record, $livewire) => self::calculateTotalPotongan($record, $livewire)),
+                    ->state(fn(Karyawan $record, $livewire) => self::calculateTotalPotongan($record, $livewire))
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Potongan')
+                            ->prefix('Rp ')
+                            ->using(function (QueryBuilder $query, $livewire): float {
+                                $total = 0;
+                                $karyawanIds = $query->pluck('id')->toArray();
+                                $karyawans = \App\Models\Karyawan::whereIn('id', $karyawanIds)->get();
+
+                                foreach ($karyawans as $record) {
+                                    $total += self::calculateTotalPotongan($record, $livewire);
+                                }
+                                return $total;
+                            })
+                            ->numeric()
+                    ),
                 Tables\Columns\TextColumn::make('pendapatan_bersih')
                     ->label('Pendapatan Bersih')
                     ->numeric()
                     ->prefix('Rp ')
-                    ->state(fn (Karyawan $record, $livewire) => self::calculatePendapatanBersih($record, $livewire)),
+                    ->state(fn(Karyawan $record, $livewire) => self::calculatePendapatanBersih($record, $livewire))
+                    ->summarize(
+                        Summarizer::make()
+                            ->label('Total Pendapatan Bersih')
+                            ->prefix('Rp ')
+                            ->using(function (QueryBuilder $query, $livewire): float {
+                                $total = 0;
+                                $karyawanIds = $query->pluck('id')->toArray();
+                                $karyawans = \App\Models\Karyawan::whereIn('id', $karyawanIds)->get();
+
+                                foreach ($karyawans as $record) {
+                                    $total += self::calculatePendapatanBersih($record, $livewire);
+                                }
+                                return $total;
+                            })
+                            ->numeric()
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -129,7 +181,7 @@ class KaryawanResource extends Resource
                         range(date('Y') - 0, date('Y') + 5)
                     ))
                     ->default(date('Y'))
-                    ->query(fn (Builder $query, array $data) => $query),
+                    ->query(fn(Builder $query, array $data) => $query),
 
                 \Filament\Tables\Filters\SelectFilter::make('bulan')
                     ->label('Filter Bulan')
@@ -148,14 +200,14 @@ class KaryawanResource extends Resource
                         12 => 'Desember',
                     ])
                     ->default(date('n'))
-                    ->query(fn (Builder $query, array $data) => $query),
+                    ->query(fn(Builder $query, array $data) => $query),
             ])
             ->actions([
                 Tables\Actions\Action::make('downloadSlipGaji')
                     ->label('Slip Gaji')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
-                    ->url(fn (Karyawan $record, $livewire) => self::getSlipGajiDownloadUrl($record, $livewire)),
+                    ->url(fn(Karyawan $record, $livewire) => self::getSlipGajiDownloadUrl($record, $livewire)),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -168,12 +220,12 @@ class KaryawanResource extends Resource
                     ->label('Export All (Summary) to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn (Table $table) => self::exportKaryawanSummary($table)),
+                    ->action(fn(Table $table) => self::exportKaryawanSummary($table)),
                 Action::make('exportExcelWithDetails')
                     ->label('Export All (Details) to Excel')
                     ->color('info')
                     ->icon('heroicon-o-document-text')
-                    ->action(fn (Table $table) => self::exportKaryawanDetails($table)),
+                    ->action(fn(Table $table) => self::exportKaryawanDetails($table)),
             ]);
     }
 
