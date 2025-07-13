@@ -2,7 +2,6 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\BarangMasukDetail;
 use App\Models\Karyawan;
 use App\Models\PenghasilanKaryawanDetail;
 use App\Models\TransaksiProdukDetail;
@@ -10,110 +9,111 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
-use Filament\Widgets\Widget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Carbon;
+use Filament\Widgets\Widget;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 
 class TotalKeuntunganKantorTotalGajiKaryawanOverview extends Widget implements HasForms
 {
-	use InteractsWithForms;
+    use InteractsWithForms;
 
-	protected static string $view = 'filament.widgets.total-keuntungan-kantor-total-gaji-karyawan-overview';
+    protected static string $view = 'filament.widgets.total-keuntungan-kantor-total-gaji-karyawan-overview';
 
-	protected static ?int $sort = 1;
+    protected static ?int $sort = 1;
 
-	protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
-	public ?int $year;
-	public ?int $month;
+    public ?int $year;
 
-	public function mount(): void
-	{
-		$this->year = (int) Carbon::now()->year;
-		$this->month = (int) Carbon::now()->month;
-	}
+    public ?int $month;
 
-	public function form(Form $form): Form
-	{
-		return $form
-			->schema([
-				Select::make('year')
-					->options(function () {
-						$currentYear = Carbon::now()->year;
-						$years = range($currentYear, $currentYear + 5);
-						return array_combine($years, $years);
-					})
-					->live()
-					->afterStateUpdated(function ($state) {
-						$this->year = $state;
-					}),
-				Select::make('month')
-					->options([
-						1 => 'Januari',
-						2 => 'Februari',
-						3 => 'Maret',
-						4 => 'April',
-						5 => 'Mei',
-						6 => 'Juni',
-						7 => 'Juli',
-						8 => 'Agustus',
-						9 => 'September',
-						10 => 'Oktober',
-						11 => 'November',
-						12 => 'Desember',
-					])
-					->live()
-					->afterStateUpdated(function ($state) {
-						$this->month = $state;
-					}),
-			]);
-	}
+    public function mount(): void
+    {
+        $this->year = (int) Carbon::now()->year;
+        $this->month = (int) Carbon::now()->month;
+    }
 
-	public function render(): View
-	{
-		$stats = $this->getStatsOverview();
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Select::make('year')
+                    ->options(function () {
+                        $currentYear = Carbon::now()->year;
+                        $years = range($currentYear, $currentYear + 5);
 
-		return view(static::$view, compact('stats'));
-	}
+                        return array_combine($years, $years);
+                    })
+                    ->live()
+                    ->afterStateUpdated(function ($state) {
+                        $this->year = $state;
+                    }),
+                Select::make('month')
+                    ->options([
+                        1 => 'Januari',
+                        2 => 'Februari',
+                        3 => 'Maret',
+                        4 => 'April',
+                        5 => 'Mei',
+                        6 => 'Juni',
+                        7 => 'Juli',
+                        8 => 'Agustus',
+                        9 => 'September',
+                        10 => 'Oktober',
+                        11 => 'November',
+                        12 => 'Desember',
+                    ])
+                    ->live()
+                    ->afterStateUpdated(function ($state) {
+                        $this->month = $state;
+                    }),
+            ]);
+    }
 
-	protected function getStatsOverview(): array
-	{
-		$year = $this->year ?? Carbon::now()->year;
-		$month = $this->month ?? Carbon::now()->month;
+    public function render(): View
+    {
+        $stats = $this->getStatsOverview();
 
-		// Calculate Total Gaji Karyawan (sebelum dikurang kasbon)
-		$totalGajiKaryawan = Karyawan::sum('gaji_pokok') +
-			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month)
-				->sum('bonus_target') +
-			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month)
-				->sum('uang_makan') +
-			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month)
-				->sum('tunjangan_transportasi') +
-			PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month)
-				->sum('thr');
+        return view(static::$view, compact('stats'));
+    }
 
-		// Calculate Total Income from product sales
-		$totalIncome = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
-			$query->whereYear('tanggal', $year)
-				->whereMonth('tanggal', $month);
-		})->sum('total_keuntungan');
+    protected function getStatsOverview(): array
+    {
+        $year = $this->year ?? Carbon::now()->year;
+        $month = $this->month ?? Carbon::now()->month;
 
-		// Calculate Total Keuntungan Kantor (sudah dikurang total gaji karyawan)
-		$totalKeuntunganKantor = $totalIncome - $totalGajiKaryawan;
+        // Calculate Total Gaji Karyawan (sebelum dikurang kasbon)
+        $totalGajiKaryawan = Karyawan::sum('gaji_pokok') +
+            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->sum('bonus_target') +
+            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->sum('uang_makan') +
+            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->sum('tunjangan_transportasi') +
+            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month)
+                ->sum('thr');
 
-		return [
-			Stat::make('Total Keuntungan Kantor', 'Rp ' . number_format($totalKeuntunganKantor, 0, ',', '.'))
-				->icon('heroicon-o-currency-dollar')
-				->color($totalKeuntunganKantor >= 0 ? 'success' : 'danger'),
-			Stat::make('Total Gaji Karyawan', 'Rp ' . number_format($totalGajiKaryawan, 0, ',', '.'))
-				->icon('heroicon-o-users')
-				->color('info'),
-		];
-	}
+        // Calculate Total Income from product sales
+        $totalIncome = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
+            $query->whereYear('tanggal', $year)
+                ->whereMonth('tanggal', $month);
+        })->sum('total_keuntungan');
 
+        // Calculate Total Keuntungan Kantor (sudah dikurang total gaji karyawan)
+        $totalKeuntunganKantor = $totalIncome - $totalGajiKaryawan;
+
+        return [
+            Stat::make('Total Keuntungan Kantor', 'Rp '.number_format($totalKeuntunganKantor, 0, ',', '.'))
+                ->icon('heroicon-o-currency-dollar')
+                ->color($totalKeuntunganKantor >= 0 ? 'success' : 'danger'),
+            Stat::make('Total Gaji Karyawan', 'Rp '.number_format($totalGajiKaryawan, 0, ',', '.'))
+                ->icon('heroicon-o-users')
+                ->color('info'),
+        ];
+    }
 }

@@ -18,10 +18,10 @@ class TransaksiBarangOverview extends BaseWidget
         $totalBarangMasuk = BarangMasukDetail::sum(DB::raw('harga_modal * jumlah_barang_masuk'));
 
         return [
-            Stat::make('Total Keuntungan Produk', 'Rp ' . number_format($totalTransaksiProduk, 0, ',', '.'))
+            Stat::make('Total Keuntungan Produk', 'Rp '.number_format($totalTransaksiProduk, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color('success'),
-            Stat::make('Total Barang Masuk', 'Rp ' . number_format($totalBarangMasuk, 0, ',', '.'))
+            Stat::make('Total Barang Masuk', 'Rp '.number_format($totalBarangMasuk, 0, ',', '.'))
                 ->icon('heroicon-o-archive-box')
                 ->color('info'),
         ];

@@ -2,13 +2,15 @@
 
 namespace App\Exports;
 
-use App\Models\Karyawan;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class KaryawanExport extends BaseExport implements FromCollection, WithHeadings, WithMapping
+class KaryawanExport extends BaseExport implements FromCollection, WithColumnFormatting, WithHeadings, WithMapping, WithStrictNullComparison
 {
     protected $query;
 
@@ -27,6 +29,13 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
         $this->includeDetails = $includeDetails;
         $this->tahun = $tahun;
         $this->bulan = $bulan;
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'A' => NumberFormat::FORMAT_NUMBER,
+        ];
     }
 
     /**
@@ -51,7 +60,7 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
             foreach ($karyawans as $karyawan) {
                 $penghasilan = $karyawan->penghasilanKaryawanDetails->first();
 
-                $totalPenerimaan = $karyawan->gaji_pokok +
+                $totalPenerimaan =
                     ($penghasilan->bonus_target ?? 0) +
                     ($penghasilan->uang_makan ?? 0) +
                     ($penghasilan->tunjangan_transportasi ?? 0) +
@@ -61,7 +70,7 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                     ($penghasilan->tanpa_keterangan ?? 0) +
                     ($penghasilan->pinjaman ?? 0);
 
-                $pendapatanBersih = $totalPenerimaan - $totalPotongan;
+                $pendapatanBersih = $karyawan->gaji_pokok + $totalPenerimaan - $totalPotongan;
 
                 $flattenedData->push([
                     'karyawan_id' => $karyawan->id,
@@ -76,7 +85,6 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                     'pendapatan_bersih' => $pendapatanBersih,
                     'remarks_main' => $karyawan->remarks,
                     // Details from PenghasilanKaryawanDetail
-                    'detail_id' => $penghasilan->id ?? null,
                     'tanggal_detail' => $penghasilan ? Carbon::parse($penghasilan->tanggal)->format('Y-m-d') : null,
                     'bonus_target' => $penghasilan->bonus_target ?? null,
                     'uang_makan' => $penghasilan->uang_makan ?? null,
@@ -85,6 +93,7 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                     'keterlambatan' => $penghasilan->keterlambatan ?? null,
                     'tanpa_keterangan' => $penghasilan->tanpa_keterangan ?? null,
                     'pinjaman' => $penghasilan->pinjaman ?? null,
+                    'remarks_detail' => $penghasilan->remarks ?? null,
                 ]);
             }
 
@@ -98,7 +107,6 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
     {
         if ($this->includeDetails) {
             return [
-                'ID Karyawan',
                 'NIK',
                 'Nama',
                 'Jabatan',
@@ -109,7 +117,6 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                 'Total Potongan',
                 'Pendapatan Bersih',
                 'Remarks (Main)',
-                'ID Detail',
                 'Tanggal Detail',
                 'Bonus Target',
                 'Uang Makan',
@@ -118,10 +125,10 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                 'Keterlambatan',
                 'Tanpa Keterangan',
                 'Pinjaman',
+                'Remarks (Detail)',
             ];
         } else {
             return [
-                'ID',
                 'NIK',
                 'Nama',
                 'Jabatan',
@@ -144,7 +151,6 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
             $this->lastKaryawanId = $currentKaryawanId;
 
             return [
-                $isNewParent ? $row['karyawan_id'] : '',
                 $isNewParent ? $row['nik'] : '',
                 $isNewParent ? $row['nama'] : '',
                 $isNewParent ? $row['jabatan'] : '',
@@ -155,7 +161,6 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                 $isNewParent ? $row['total_potongan'] : '',
                 $isNewParent ? $row['pendapatan_bersih'] : '',
                 $isNewParent ? $row['remarks_main'] : '',
-                $row['detail_id'],
                 $row['tanggal_detail'],
                 $row['bonus_target'],
                 $row['uang_makan'],
@@ -164,12 +169,12 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                 $row['keterlambatan'],
                 $row['tanpa_keterangan'],
                 $row['pinjaman'],
+                $row['remarks_detail'],
             ];
         } else {
             $penghasilan = $row->penghasilanKaryawanDetails->first();
 
-            $totalPenerimaan = $row->gaji_pokok +
-                ($penghasilan->bonus_target ?? 0) +
+            $totalPenerimaan = ($penghasilan->bonus_target ?? 0) +
                 ($penghasilan->uang_makan ?? 0) +
                 ($penghasilan->tunjangan_transportasi ?? 0) +
                 ($penghasilan->thr ?? 0);
@@ -178,10 +183,9 @@ class KaryawanExport extends BaseExport implements FromCollection, WithHeadings,
                 ($penghasilan->tanpa_keterangan ?? 0) +
                 ($penghasilan->pinjaman ?? 0);
 
-            $pendapatanBersih = $totalPenerimaan - $totalPotongan;
+            $pendapatanBersih = $row->gaji_pokok + $totalPenerimaan - $totalPotongan;
 
             return [
-                $row->id,
                 $row->nik,
                 $row->nama,
                 $row->jabatan,
