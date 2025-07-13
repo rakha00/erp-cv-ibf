@@ -104,12 +104,26 @@ class TransaksiProdukResource extends Resource
                     ->label('Total Harga Jual')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalHargaJual($record)),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalHargaJual($record))
+                    ->summarize(
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Harga Jual')
+                            ->prefix('Rp ')
+                            ->numeric()
+                            ->using(fn (\Illuminate\Database\Query\Builder $query) => TransaksiProduk::hydrate($query->get()->toArray())->sum(fn (TransaksiProduk $record) => self::calculateTotalHargaJual($record)))
+                    ),
                 Tables\Columns\TextColumn::make('total_keuntungan')
                     ->label('Total Keuntungan')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalKeuntungan($record)),
+                    ->getStateUsing(fn (TransaksiProduk $record) => self::calculateTotalKeuntungan($record))
+                    ->summarize(
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Keuntungan')
+                            ->prefix('Rp ')
+                            ->numeric()
+                            ->using(fn (\Illuminate\Database\Query\Builder $query) => TransaksiProduk::hydrate($query->get()->toArray())->sum(fn (TransaksiProduk $record) => self::calculateTotalKeuntungan($record)))
+                    ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
