@@ -57,7 +57,15 @@ class UtangResource extends Resource
                     ->label('Nama Principle')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn(?string $state, Get $get, ?Utang $record) => $state ?? $record?->barangMasuk?->principleSubdealer?->nama ?? null),
+                    ->formatStateUsing(fn(?string $state, Get $get, ?Utang $record) => $state ?? $record?->barangMasuk?->principleSubdealer?->nama ?? null)
+                    ->afterStateHydrated(function (Forms\Components\TextInput $component, ?Utang $record) {
+                        if ($record && $record->barang_masuk_id) {
+                            $barangMasuk = BarangMasuk::withTrashed()
+                                ->with(['principleSubdealer' => fn($query) => $query->withTrashed()])
+                                ->find($record->barang_masuk_id);
+                            $component->state($barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)');
+                        }
+                    }),
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
                     ->required(),
@@ -183,15 +191,25 @@ class UtangResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('barangMasuk.nomor_barang_masuk')
+                Tables\Columns\TextColumn::make('barangMasuk_nomor')
                     ->label('No. Barang Masuk')
-                    ->color(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'danger' : null)
-                    ->icon(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
-                    ->tooltip(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
+                    ->state(fn($record) => $record->barangMasuk?->nomor_barang_masuk ?? 'N/A')
+                    ->color(fn($record) => $record->barangMasuk?->trashed() ? 'danger' : null)
+                    ->icon(fn($record) => $record->barangMasuk?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn($record) => $record->barangMasuk?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
                     ->sortable()
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('barangMasuk.tanggal')
+                    ->searchable(query: fn(Builder $query, string $search): Builder => $query->whereHas('barangMasuk', fn(Builder $query) => $query->where('nomor_barang_masuk', 'like', "%{$search}%")->withTrashed())),
+                Tables\Columns\TextColumn::make('principle_subdealer_nama')
+                    ->label('Principle/Subdealer')
+                    ->state(fn($record) => $record->barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)')
+                    ->color(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'danger' : null)
+                    ->icon(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null)
+                    ->sortable()
+                    ->searchable(query: fn(Builder $query, string $search): Builder => $query->whereHas('barangMasuk.principleSubdealer', fn(Builder $query) => $query->where('nama', 'like', "%{$search}%")->withTrashed())),
+                Tables\Columns\TextColumn::make('barangMasuk_tanggal')
                     ->label('Tanggal Barang Masuk')
+                    ->state(fn($record) => $record->barangMasuk?->tanggal?->format('Y-m-d') ?? 'N/A')
                     ->date(),
                 Tables\Columns\TextColumn::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
@@ -289,7 +307,7 @@ class UtangResource extends Resource
                     ->relationship('barangMasuk.principleSubdealer', 'nama')
                     ->label('Principle/Subdealer'),
             ])
-            ->modifyQueryUsing(fn(Builder $query) => $query->with(['barangMasuk' => fn($query) => $query->withTrashed()]))
+            ->modifyQueryUsing(fn(Builder $query) => $query->with(['barangMasuk' => fn($query) => $query->withTrashed()->with(['principleSubdealer' => fn($query) => $query->withTrashed()])]))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])

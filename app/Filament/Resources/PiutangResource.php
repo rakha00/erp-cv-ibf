@@ -245,7 +245,35 @@ class PiutangResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('status_pembayaran')
+                    ->options([
+                        'belum lunas' => 'Belum Lunas',
+                        'tercicil' => 'Tercicil',
+                        'sudah lunas' => 'Sudah Lunas',
+                    ])
+                    ->label('Status Pembayaran'),
+                Tables\Filters\Filter::make('jatuh_tempo')
+                    ->form([
+                        Forms\Components\DatePicker::make('jatuh_tempo_from')
+                            ->label('Jatuh Tempo From'),
+                        Forms\Components\DatePicker::make('jatuh_tempo_until')
+                            ->label('Jatuh Tempo Until'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data): \Illuminate\Database\Eloquent\Builder {
+                        return $query
+                            ->when(
+                                $data['jatuh_tempo_from'],
+                                fn(\Illuminate\Database\Eloquent\Builder $query, $date): \Illuminate\Database\Eloquent\Builder => $query->whereDate('jatuh_tempo', '>=', $date),
+                            )
+                            ->when(
+                                $data['jatuh_tempo_until'],
+                                fn(\Illuminate\Database\Eloquent\Builder $query, $date): \Illuminate\Database\Eloquent\Builder => $query->whereDate('jatuh_tempo', '<=', $date),
+                            );
+                    })
+                    ->label('Jatuh Tempo'),
+                Tables\Filters\SelectFilter::make('transaksiProduk')
+                    ->relationship('transaksiProduk', 'no_invoice')
+                    ->label('No. Transaksi'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

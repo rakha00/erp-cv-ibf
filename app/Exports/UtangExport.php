@@ -29,9 +29,9 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
     public function columnFormats(): array
     {
         return [
-            'E' => '"Rp "#,##0',
             'F' => '"Rp "#,##0',
             'G' => '"Rp "#,##0',
+            'H' => '"Rp "#,##0',
         ];
     }
 
@@ -47,7 +47,7 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
 
         $utangs = $this->query->with([
             'barangMasuk' => function ($query) {
-                $query->withTrashed()->with('principleSubdealer');
+                $query->withTrashed()->with(['principleSubdealer' => fn($query) => $query->withTrashed()]);
             }
         ])->get();
 
@@ -75,6 +75,7 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
     {
         return [
             'No. Barang Masuk',
+            'Principle/Subdealer',
             'Tanggal Barang Masuk',
             'Jatuh Tempo',
             'Status Pembayaran',
@@ -97,6 +98,7 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
 
         return [
             $utang->barangMasuk->nomor_barang_masuk ?? '',
+            $utang->barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)',
             Carbon::parse($utang->barangMasuk->tanggal ?? '')->format('Y-m-d'),
             Carbon::parse($utang->jatuh_tempo)->format('Y-m-d'),
             ucwords($utang->status_pembayaran),
@@ -111,6 +113,7 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
     {
         return [
             self::TOTAL_LABEL, // No. Barang Masuk
+            '', // Principle/Subdealer
             '', // Tanggal Barang Masuk
             '', // Jatuh Tempo
             '', // Status Pembayaran
