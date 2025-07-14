@@ -13,12 +13,21 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class UtangResource extends Resource
 {
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['barangMasuk' => fn($query) => $query->withTrashed()->with('principleSubdealer')]);
+    }
+
     protected static ?string $model = Utang::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
@@ -37,11 +46,11 @@ class UtangResource extends Resource
             ->schema([
                 Forms\Components\Select::make('barang_masuk_id')
                     ->label('Barang Masuk')
-                    ->options(self::getBarangMasukOptions())
+                    ->options(fn(Get $get, ?Utang $record): array => self::getBarangMasukOptions($get, $record))
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn (Set $set, $state, ?Utang $record) => self::updateBarangMasukDetails($set, $state, $record)),
+                    ->afterStateUpdated(fn(Set $set, $state, ?Utang $record) => self::updateBarangMasukDetails($set, $state, $record)),
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->required()
@@ -49,12 +58,12 @@ class UtangResource extends Resource
                     ->prefix('Rp ')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\TextInput::make('nama_principle')
                     ->label('Nama Principle')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn ($state, $record) => $record?->barangMasuk?->principleSubdealer?->nama ?? null),
+                    ->formatStateUsing(fn(?string $state, Get $get, ?Utang $record) => $state ?? $record?->barangMasuk?->principleSubdealer?->nama ?? null),
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
                     ->required(),
@@ -65,9 +74,9 @@ class UtangResource extends Resource
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
+                    ->afterStateUpdated(fn(Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
                     ->dehydrateStateUsing(function ($state) {
-                        if (! $state) {
+                        if (!$state) {
                             return null;
                         }
 
@@ -80,7 +89,7 @@ class UtangResource extends Resource
                     ->stripCharacters(',')
                     ->dehydrated()
                     ->prefix('Rp')
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\FileUpload::make('foto')
                     ->label('Foto Bukti')
                     ->multiple()
@@ -113,23 +122,30 @@ class UtangResource extends Resource
     /**
      * Get options for the BarangMasuk select field.
      */
-    private static function getBarangMasukOptions(): array
+    private static function getBarangMasukOptions(Get $get, ?Utang $record = null): array
     {
-        return BarangMasuk::with('principleSubdealer')
-            ->get()
-            ->mapWithKeys(function ($barangMasuk) {
-                $formattedDate = \Carbon\Carbon::parse($barangMasuk->tanggal)->format('d-m-Y');
+        $selectedBarangMasukId = $get('barang_masuk_id') ?? $record?->barang_masuk_id;
 
-                return [
-                    $barangMasuk->id => sprintf(
-                        '%s | %s - %s',
-                        $barangMasuk->nomor_barang_masuk,
-                        $formattedDate,
-                        $barangMasuk->principleSubdealer->nama
-                    ),
-                ];
-            })
-            ->all();
+        $barangMasuks = BarangMasuk::with(['principleSubdealer' => fn($query) => $query->withTrashed()])->get();
+
+        if ($selectedBarangMasukId) {
+            $selectedBarangMasuk = BarangMasuk::withTrashed()->find($selectedBarangMasukId);
+            if ($selectedBarangMasuk && $selectedBarangMasuk->trashed() && !$barangMasuks->contains('id', $selectedBarangMasukId)) {
+                $barangMasuks->add($selectedBarangMasuk);
+            }
+        }
+
+        return $barangMasuks->mapWithKeys(function ($barangMasuk) {
+            $formattedDate = \Carbon\Carbon::parse($barangMasuk->tanggal)->format('d-m-Y');
+            $principleName = $barangMasuk->principleSubdealer->nama ?? 'N/A (Deleted)';
+            $label = sprintf('%s | %s - %s', $barangMasuk->nomor_barang_masuk, $formattedDate, $principleName);
+
+            if ($barangMasuk->trashed()) {
+                $label .= ' (Dihapus)';
+            }
+
+            return [$barangMasuk->id => $label];
+        })->all();
     }
 
     /**
@@ -137,8 +153,8 @@ class UtangResource extends Resource
      */
     private static function updateBarangMasukDetails(Set $set, $state, ?Utang $record = null): void
     {
-        if (! $state) {
-            if (! $record) {
+        if (!$state) {
+            if (!$record) {
                 $set('total_harga_modal', '');
             }
             $set('nama_principle', '');
@@ -146,13 +162,13 @@ class UtangResource extends Resource
             return;
         }
 
-        $barangMasuk = BarangMasuk::with(['barangMasukDetails', 'principleSubdealer'])->find($state);
+        $barangMasuk = BarangMasuk::withTrashed()->with(['barangMasukDetails', 'principleSubdealer' => fn($query) => $query->withTrashed()])->find($state);
 
-        if (! $barangMasuk) {
+        if (!$barangMasuk) {
             return;
         }
 
-        if (! $record) {
+        if (!$record) {
             $totalHargaModal = self::calculateTotalHargaModal($barangMasuk);
             $set('total_harga_modal', number_format($totalHargaModal, 0, '.', ','));
         }
@@ -175,9 +191,9 @@ class UtangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('barangMasuk.nomor_barang_masuk')
                     ->label('No. Barang Masuk')
-                    ->color(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'danger' : null)
-                    ->icon(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
-                    ->tooltip(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
+                    ->color(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'danger' : null)
+                    ->icon(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('barangMasuk.tanggal')
@@ -194,21 +210,45 @@ class UtangResource extends Resource
                         'success' => 'sudah lunas',
                     ])
                     ->label('Status')
-                    ->formatStateUsing(fn ($state) => ucwords($state)),
+                    ->formatStateUsing(fn($state) => ucwords($state)),
                 Tables\Columns\TextColumn::make('sudah_dibayar')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize([
+                        Sum::make()
+                            ->label('Total Sudah Dibayar')
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize([
+                        Sum::make()
+                            ->label('Total Harga Modal')
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('sisa_hutang')
                     ->label('Sisa Hutang')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->state(fn ($record) => self::calculateSisaHutang($record))
-                    ->sortable(),
+                    ->state(fn($record) => self::calculateSisaHutang($record))
+                    ->sortable()
+                    ->summarize([
+                        Summarizer::make()
+                            ->label('Total Sisa Hutang')
+                            ->using(function (QueryBuilder $query): float {
+                                $totalHargaModalSum = $query->sum('total_harga_modal');
+                                $sudahDibayarSum = $query->sum('sudah_dibayar');
+
+                                return $totalHargaModalSum - $sudahDibayarSum;
+                            })
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
@@ -243,11 +283,11 @@ class UtangResource extends Resource
                         return $query
                             ->when(
                                 $data['jatuh_tempo_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '>=', $date),
                             )
                             ->when(
                                 $data['jatuh_tempo_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '<=', $date),
                             );
                     })
                     ->label('Jatuh Tempo'),
@@ -255,7 +295,7 @@ class UtangResource extends Resource
                     ->relationship('barangMasuk.principleSubdealer', 'nama')
                     ->label('Principle/Subdealer'),
             ])
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['barangMasuk' => fn ($query) => $query->withTrashed()]))
+            ->modifyQueryUsing(fn(Builder $query) => $query->with(['barangMasuk' => fn($query) => $query->withTrashed()]))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -269,7 +309,7 @@ class UtangResource extends Resource
                     ->label('Export to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn (Table $table) => self::exportUtangExcel($table)),
+                    ->action(fn(Table $table) => self::exportUtangExcel($table)),
             ]);
     }
 
