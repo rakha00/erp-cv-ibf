@@ -113,25 +113,7 @@ class TransaksiProdukDetailsRelationManager extends RelationManager
                     }),
                 Tables\Columns\TextColumn::make('nama_unit')
                     ->label('Nama Unit')
-                    ->sortable()
-                    ->icon(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        return $unitProduk && $unitProduk->trashed() ? 'heroicon-s-trash' : null;
-                    })
-                    ->color(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if ($unitProduk && $unitProduk->trashed()) {
-                            return 'danger';
-                        }
-                        return null;
-                    })
-                    ->tooltip(function ($record) {
-                        $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if ($unitProduk && $unitProduk->trashed()) {
-                            return 'Data master unit produk ini telah dihapus';
-                        }
-                        return null;
-                    }),
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('jumlah_keluar')
                     ->label('Qty')
                     ->numeric()
