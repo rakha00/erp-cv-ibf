@@ -9,15 +9,18 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 
-class UtangExport extends BaseExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, WithStrictNullComparison
+class UtangExport extends BaseExport implements FromCollection, WithColumnFormatting, WithHeadings, WithMapping, WithStrictNullComparison
 {
     protected $query;
 
     protected float $totalSudahDibayarAccumulated = 0;
+
     protected float $totalTotalHargaModalAccumulated = 0;
+
     protected float $totalSisaHutangAccumulated = 0;
 
     private const SUMMARY_ROW_INDICATOR = 'is_summary_row';
+
     private const TOTAL_LABEL = 'TOTAL';
 
     public function __construct($query, $resourceTitle = 'Utang')
@@ -35,7 +38,6 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
         ];
     }
 
-
     /**
      * @return \Illuminate\Support\Collection
      */
@@ -47,8 +49,8 @@ class UtangExport extends BaseExport implements FromCollection, WithHeadings, Wi
 
         $utangs = $this->query->with([
             'barangMasuk' => function ($query) {
-                $query->withTrashed()->with(['principleSubdealer' => fn($query) => $query->withTrashed()]);
-            }
+                $query->withTrashed()->with(['principleSubdealer' => fn ($query) => $query->withTrashed()]);
+            },
         ])->get();
 
         foreach ($utangs as $utang) {

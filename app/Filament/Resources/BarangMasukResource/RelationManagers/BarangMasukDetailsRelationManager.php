@@ -22,11 +22,11 @@ class BarangMasukDetailsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('unit_produk_id')
                     ->label('SKU')
-                    ->options(fn(callable $get): array => self::getUnitProdukOptions($get))
+                    ->options(fn (callable $get): array => self::getUnitProdukOptions($get))
                     ->searchable()
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(fn($state, callable $set, callable $get) => self::updateUnitProdukDetails($state, $set, $get)),
+                    ->afterStateUpdated(fn ($state, callable $set, callable $get) => self::updateUnitProdukDetails($state, $set, $get)),
                 Forms\Components\TextInput::make('nama_unit')
                     ->label('Nama Unit')
                     ->disabled()
@@ -36,7 +36,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->label('Jumlah Barang Masuk')
                     ->numeric()
                     ->live(true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTotals($set, $get))
+                    ->afterStateUpdated(fn (callable $set, callable $get) => self::updateTotals($set, $get))
                     ->required(),
                 Forms\Components\TextInput::make('harga_modal')
                     ->label('Harga Modal/Unit')
@@ -45,7 +45,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->stripCharacters(',')
                     ->numeric()
                     ->live(true)
-                    ->afterStateUpdated(fn(callable $set, callable $get) => self::updateTotals($set, $get))
+                    ->afterStateUpdated(fn (callable $set, callable $get) => self::updateTotals($set, $get))
                     ->required(),
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
@@ -69,11 +69,11 @@ class BarangMasukDetailsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('unit_produk_id')
                     ->label('SKU')
-                    ->getStateUsing(fn($record) => $record->unitProduk()->withTrashed()->first()?->sku)
+                    ->getStateUsing(fn ($record) => $record->unitProduk()->withTrashed()->first()?->sku)
                     ->sortable()
-                    ->icon(fn($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'heroicon-s-trash' : null)
-                    ->color(fn($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'danger' : null)
-                    ->tooltip(fn($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'Data master unit produk ini telah dihapus' : null),
+                    ->icon(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'heroicon-s-trash' : null)
+                    ->color(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'danger' : null)
+                    ->tooltip(fn ($record) => $record->unitProduk()->withTrashed()->first()->trashed() ? 'Data master unit produk ini telah dihapus' : null),
                 Tables\Columns\TextColumn::make('nama_unit')
                     ->label('Nama Unit')
                     ->sortable(),
@@ -87,7 +87,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->sortable()
                     ->icon(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
                             return null;
                         }
 
@@ -96,7 +96,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     ->color(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
 
-                        if (!$unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal !== (float) $record->harga_modal) {
                             return 'warning';
                         }
 
@@ -104,11 +104,11 @@ class BarangMasukDetailsRelationManager extends RelationManager
                     })
                     ->tooltip(function ($record) {
                         $unitProduk = $record->unitProduk()->withTrashed()->first();
-                        if (!$unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
+                        if (! $unitProduk || (float) $unitProduk->harga_modal === (float) $record->harga_modal) {
                             return null;
                         }
 
-                        return 'Harga modal saat ini: Rp ' . number_format($unitProduk->harga_modal, 0, ',', '.');
+                        return 'Harga modal saat ini: Rp '.number_format($unitProduk->harga_modal, 0, ',', '.');
                     }),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
@@ -119,7 +119,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
                             ->label('Total Harga Modal')
                             ->numeric()
                             ->prefix('Rp ')
-                            ->using(fn(QueryBuilder $query): float => $query->sum('total_harga_modal'))
+                            ->using(fn (QueryBuilder $query): float => $query->sum('total_harga_modal'))
                     ),
                 Tables\Columns\TextColumn::make('remarks')
                     ->label('Remarks')
@@ -164,7 +164,7 @@ class BarangMasukDetailsRelationManager extends RelationManager
         $units = UnitProduk::query()->get();
         $selectedUnitId = $get('unit_produk_id');
 
-        if ($selectedUnitId && !$units->contains('id', $selectedUnitId)) {
+        if ($selectedUnitId && ! $units->contains('id', $selectedUnitId)) {
             $deletedUnit = UnitProduk::withTrashed()->find($selectedUnitId);
             if ($deletedUnit) {
                 $units->add($deletedUnit);

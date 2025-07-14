@@ -154,16 +154,16 @@ class FinancialOverviewWidget extends Widget implements HasForms
         })->sum(DB::raw('harga_modal * jumlah_barang_masuk'));
 
         return [
-            Stat::make('Total Keuntungan Kantor', 'Rp ' . number_format($totalKeuntunganKantor, 0, ',', '.'))
+            Stat::make('Total Keuntungan Kantor', 'Rp '.number_format($totalKeuntunganKantor, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color($totalKeuntunganKantor >= 0 ? 'success' : 'danger'),
-            Stat::make($this->getSalaryLabel(), 'Rp ' . number_format($totalGajiKaryawan, 0, ',', '.'))
+            Stat::make($this->getSalaryLabel(), 'Rp '.number_format($totalGajiKaryawan, 0, ',', '.'))
                 ->icon('heroicon-o-users')
                 ->color('info'),
-            Stat::make('Total Keuntungan Produk', 'Rp ' . number_format($totalIncome, 0, ',', '.'))
+            Stat::make('Total Keuntungan Produk', 'Rp '.number_format($totalIncome, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color('success'),
-            Stat::make('Total Barang Masuk', 'Rp ' . number_format($totalBarangMasuk, 0, ',', '.'))
+            Stat::make('Total Barang Masuk', 'Rp '.number_format($totalBarangMasuk, 0, ',', '.'))
                 ->icon('heroicon-o-archive-box')
                 ->color('info'),
         ];

@@ -30,8 +30,8 @@ class TransaksiProdukSeeder extends Seeder
         for ($i = 0; $i < 50; $i++) { // Create 50 transaction records
             $tanggal = Carbon::create(2025, rand(1, 12), rand(1, 28));
             $transaksi = TransaksiProduk::create([
-                'no_invoice' => 'INV/' . $tanggal->format('Ymd') . '-' . str_pad($noInvoiceCounter++, 3, '0', STR_PAD_LEFT),
-                'no_surat_jalan' => 'SJ/' . $tanggal->format('Ymd') . '-' . str_pad($noSuratJalanCounter++, 3, '0', STR_PAD_LEFT),
+                'no_invoice' => 'INV/'.$tanggal->format('Ymd').'-'.str_pad($noInvoiceCounter++, 3, '0', STR_PAD_LEFT),
+                'no_surat_jalan' => 'SJ/'.$tanggal->format('Ymd').'-'.str_pad($noSuratJalanCounter++, 3, '0', STR_PAD_LEFT),
                 'tanggal' => $tanggal,
                 'remarks' => 'Penjualan produk elektronik.',
                 'created_at' => $now,
@@ -53,7 +53,7 @@ class TransaksiProdukSeeder extends Seeder
                     'harga_modal' => $product->harga_modal,
                     'jumlah_keluar' => $jumlahKeluar,
                     'total_keuntungan' => round($keuntungan),
-                    'remarks' => 'Detail produk ' . $product->nama_unit,
+                    'remarks' => 'Detail produk '.$product->nama_unit,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);

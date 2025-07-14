@@ -13,9 +13,9 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\Summarizers\Summarizer;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -40,11 +40,11 @@ class UtangResource extends Resource
             ->schema([
                 Forms\Components\Select::make('barang_masuk_id')
                     ->label('Barang Masuk')
-                    ->options(fn(Get $get, ?Utang $record): array => self::getBarangMasukOptions($get, $record))
+                    ->options(fn (Get $get, ?Utang $record): array => self::getBarangMasukOptions($get, $record))
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn(Set $set, $state, ?Utang $record) => self::updateBarangMasukDetails($set, $state, $record)),
+                    ->afterStateUpdated(fn (Set $set, $state, ?Utang $record) => self::updateBarangMasukDetails($set, $state, $record)),
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->required()
@@ -52,16 +52,16 @@ class UtangResource extends Resource
                     ->prefix('Rp ')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\TextInput::make('nama_principle')
                     ->label('Nama Principle')
                     ->disabled()
                     ->dehydrated()
-                    ->formatStateUsing(fn(?string $state, Get $get, ?Utang $record) => $state ?? $record?->barangMasuk?->principleSubdealer?->nama ?? null)
+                    ->formatStateUsing(fn (?string $state, Get $get, ?Utang $record) => $state ?? $record?->barangMasuk?->principleSubdealer?->nama ?? null)
                     ->afterStateHydrated(function (Forms\Components\TextInput $component, ?Utang $record) {
                         if ($record && $record->barang_masuk_id) {
                             $barangMasuk = BarangMasuk::withTrashed()
-                                ->with(['principleSubdealer' => fn($query) => $query->withTrashed()])
+                                ->with(['principleSubdealer' => fn ($query) => $query->withTrashed()])
                                 ->find($record->barang_masuk_id);
                             $component->state($barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)');
                         }
@@ -76,9 +76,9 @@ class UtangResource extends Resource
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
+                    ->afterStateUpdated(fn (Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
                     ->dehydrateStateUsing(function ($state) {
-                        if (!$state) {
+                        if (! $state) {
                             return null;
                         }
 
@@ -91,7 +91,7 @@ class UtangResource extends Resource
                     ->stripCharacters(',')
                     ->dehydrated()
                     ->prefix('Rp')
-                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
                 Forms\Components\FileUpload::make('foto')
                     ->label('Foto Bukti')
                     ->multiple()
@@ -128,11 +128,11 @@ class UtangResource extends Resource
     {
         $selectedBarangMasukId = $get('barang_masuk_id') ?? $record?->barang_masuk_id;
 
-        $barangMasuks = BarangMasuk::with(['principleSubdealer' => fn($query) => $query->withTrashed()])->get();
+        $barangMasuks = BarangMasuk::with(['principleSubdealer' => fn ($query) => $query->withTrashed()])->get();
 
         if ($selectedBarangMasukId) {
             $selectedBarangMasuk = BarangMasuk::withTrashed()->find($selectedBarangMasukId);
-            if ($selectedBarangMasuk && $selectedBarangMasuk->trashed() && !$barangMasuks->contains('id', $selectedBarangMasukId)) {
+            if ($selectedBarangMasuk && $selectedBarangMasuk->trashed() && ! $barangMasuks->contains('id', $selectedBarangMasukId)) {
                 $barangMasuks->add($selectedBarangMasuk);
             }
         }
@@ -155,8 +155,8 @@ class UtangResource extends Resource
      */
     private static function updateBarangMasukDetails(Set $set, $state, ?Utang $record = null): void
     {
-        if (!$state) {
-            if (!$record) {
+        if (! $state) {
+            if (! $record) {
                 $set('total_harga_modal', '');
             }
             $set('nama_principle', '');
@@ -164,13 +164,13 @@ class UtangResource extends Resource
             return;
         }
 
-        $barangMasuk = BarangMasuk::withTrashed()->with(['barangMasukDetails', 'principleSubdealer' => fn($query) => $query->withTrashed()])->find($state);
+        $barangMasuk = BarangMasuk::withTrashed()->with(['barangMasukDetails', 'principleSubdealer' => fn ($query) => $query->withTrashed()])->find($state);
 
-        if (!$barangMasuk) {
+        if (! $barangMasuk) {
             return;
         }
 
-        if (!$record) {
+        if (! $record) {
             $totalHargaModal = self::calculateTotalHargaModal($barangMasuk);
             $set('total_harga_modal', number_format($totalHargaModal, 0, '.', ','));
         }
@@ -193,23 +193,23 @@ class UtangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('barangMasuk_nomor')
                     ->label('No. Barang Masuk')
-                    ->state(fn($record) => $record->barangMasuk?->nomor_barang_masuk ?? 'N/A')
-                    ->color(fn($record) => $record->barangMasuk?->trashed() ? 'danger' : null)
-                    ->icon(fn($record) => $record->barangMasuk?->trashed() ? 'heroicon-s-trash' : null)
-                    ->tooltip(fn($record) => $record->barangMasuk?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
+                    ->state(fn ($record) => $record->barangMasuk?->nomor_barang_masuk ?? 'N/A')
+                    ->color(fn ($record) => $record->barangMasuk?->trashed() ? 'danger' : null)
+                    ->icon(fn ($record) => $record->barangMasuk?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn ($record) => $record->barangMasuk?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
                     ->sortable()
-                    ->searchable(query: fn(Builder $query, string $search): Builder => $query->whereHas('barangMasuk', fn(Builder $query) => $query->where('nomor_barang_masuk', 'like', "%{$search}%")->withTrashed())),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('barangMasuk', fn (Builder $query) => $query->where('nomor_barang_masuk', 'like', "%{$search}%")->withTrashed())),
                 Tables\Columns\TextColumn::make('principle_subdealer_nama')
                     ->label('Principle/Subdealer')
-                    ->state(fn($record) => $record->barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)')
-                    ->color(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'danger' : null)
-                    ->icon(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'heroicon-s-trash' : null)
-                    ->tooltip(fn($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null)
+                    ->state(fn ($record) => $record->barangMasuk?->principleSubdealer?->nama ?? 'N/A (Deleted)')
+                    ->color(fn ($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'danger' : null)
+                    ->icon(fn ($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn ($record) => $record->barangMasuk?->principleSubdealer->trashed() ? 'Data master Principle/Subdealer ini telah dihapus' : null)
                     ->sortable()
-                    ->searchable(query: fn(Builder $query, string $search): Builder => $query->whereHas('barangMasuk.principleSubdealer', fn(Builder $query) => $query->where('nama', 'like', "%{$search}%")->withTrashed())),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('barangMasuk.principleSubdealer', fn (Builder $query) => $query->where('nama', 'like', "%{$search}%")->withTrashed())),
                 Tables\Columns\TextColumn::make('barangMasuk_tanggal')
                     ->label('Tanggal Barang Masuk')
-                    ->state(fn($record) => $record->barangMasuk?->tanggal?->format('Y-m-d') ?? 'N/A')
+                    ->state(fn ($record) => $record->barangMasuk?->tanggal?->format('Y-m-d') ?? 'N/A')
                     ->date(),
                 Tables\Columns\TextColumn::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
@@ -222,7 +222,7 @@ class UtangResource extends Resource
                         'success' => 'sudah lunas',
                     ])
                     ->label('Status')
-                    ->formatStateUsing(fn($state) => ucwords($state)),
+                    ->formatStateUsing(fn ($state) => ucwords($state)),
                 Tables\Columns\TextColumn::make('sudah_dibayar')
                     ->numeric()
                     ->sortable()
@@ -247,7 +247,7 @@ class UtangResource extends Resource
                     ->label('Sisa Hutang')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->state(fn($record) => self::calculateSisaHutang($record))
+                    ->state(fn ($record) => self::calculateSisaHutang($record))
                     ->sortable()
                     ->summarize([
                         Summarizer::make()
@@ -295,11 +295,11 @@ class UtangResource extends Resource
                         return $query
                             ->when(
                                 $data['jatuh_tempo_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '>=', $date),
                             )
                             ->when(
                                 $data['jatuh_tempo_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('jatuh_tempo', '<=', $date),
                             );
                     })
                     ->label('Jatuh Tempo'),
@@ -307,7 +307,7 @@ class UtangResource extends Resource
                     ->relationship('barangMasuk.principleSubdealer', 'nama')
                     ->label('Principle/Subdealer'),
             ])
-            ->modifyQueryUsing(fn(Builder $query) => $query->with(['barangMasuk' => fn($query) => $query->withTrashed()->with(['principleSubdealer' => fn($query) => $query->withTrashed()])]))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['barangMasuk' => fn ($query) => $query->withTrashed()->with(['principleSubdealer' => fn ($query) => $query->withTrashed()])]))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -321,7 +321,7 @@ class UtangResource extends Resource
                     ->label('Export to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn(Table $table) => self::exportUtangExcel($table)),
+                    ->action(fn (Table $table) => self::exportUtangExcel($table)),
             ]);
     }
 
@@ -336,7 +336,7 @@ class UtangResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['barangMasuk' => fn($query) => $query->withTrashed()->with('principleSubdealer')]);
+            ->with(['barangMasuk' => fn ($query) => $query->withTrashed()->with('principleSubdealer')]);
     }
 
     public static function getRelations(): array

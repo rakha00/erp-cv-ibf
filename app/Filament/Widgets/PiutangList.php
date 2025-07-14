@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\Piutang;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,29 +25,33 @@ class PiutangList extends BaseWidget
         return Piutang::query()
             ->join('transaksi_produks', 'piutangs.transaksi_produk_id', '=', 'transaksi_produks.id')
             ->whereIn('piutangs.status_pembayaran', ['belum lunas', 'tercicil'])
-            ->selectRaw('transaksi_produks.no_invoice as reference, piutangs.jatuh_tempo, piutangs.status_pembayaran as status, piutangs.id')
-            ->orderBy('piutangs.jatuh_tempo');
+            ->selectRaw('transaksi_produks.no_invoice as reference, piutangs.jatuh_tempo, piutangs.status_pembayaran as status, piutangs.id');
     }
 
-    protected function getTableColumns(): array
+    public function table(Table $table): Table
     {
-        return [
-            TextColumn::make('reference')
-                ->label('No. Referensi')
-                ->sortable(),
-            TextColumn::make('jatuh_tempo')
-                ->label('Jatuh Tempo')
-                ->date()
-                ->sortable(),
-            BadgeColumn::make('status')
-                ->label('Status')
-                ->colors([
-                    'danger' => 'belum lunas',
-                    'warning' => 'tercicil',
-                    'success' => 'lunas',
-                ])
-                ->formatStateUsing(fn ($state) => ucwords($state))
-                ->sortable(),
-        ];
+        return $table
+            ->query(
+                $this->getTableQuery()
+            )
+            ->columns([
+                TextColumn::make('reference')
+                    ->label('No. Referensi')
+                    ->sortable('transaksi_produks.no_invoice'),
+                TextColumn::make('jatuh_tempo')
+                    ->label('Jatuh Tempo')
+                    ->date()
+                    ->sortable(),
+                BadgeColumn::make('status')
+                    ->label('Status')
+                    ->colors([
+                        'danger' => 'belum lunas',
+                        'warning' => 'tercicil',
+                        'success' => 'lunas',
+                    ])
+                    ->formatStateUsing(fn ($state) => ucwords($state))
+                    ->sortable('piutangs.status_pembayaran'),
+            ])
+            ->defaultSort('jatuh_tempo', 'asc');
     }
 }

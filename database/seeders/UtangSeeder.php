@@ -46,7 +46,7 @@ class UtangSeeder extends Seeder
                 'status_pembayaran' => $statusPembayaran,
                 'sudah_dibayar' => $sudahDibayar,
                 'total_harga_modal' => $totalModal,
-                'remarks' => 'Pembayaran utang untuk barang masuk ' . $barangMasuk->nomor_barang_masuk,
+                'remarks' => 'Pembayaran utang untuk barang masuk '.$barangMasuk->nomor_barang_masuk,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

@@ -9,15 +9,18 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 
-class PiutangExport extends BaseExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting, WithStrictNullComparison
+class PiutangExport extends BaseExport implements FromCollection, WithColumnFormatting, WithHeadings, WithMapping, WithStrictNullComparison
 {
     protected $query;
 
     protected float $totalSudahDibayarAccumulated = 0;
+
     protected float $totalTotalHargaModalAccumulated = 0;
+
     protected float $totalSisaPiutangAccumulated = 0;
 
     private const SUMMARY_ROW_INDICATOR = 'is_summary_row';
+
     private const TOTAL_LABEL = 'TOTAL';
 
     public function __construct($query, $resourceTitle = 'Piutang')
@@ -47,7 +50,7 @@ class PiutangExport extends BaseExport implements FromCollection, WithHeadings, 
         $piutangs = $this->query->with([
             'transaksiProduk' => function ($query) {
                 $query->withTrashed();
-            }
+            },
         ])->get();
 
         foreach ($piutangs as $piutang) {
