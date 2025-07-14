@@ -22,7 +22,9 @@ class PiutangSeeder extends Seeder
             return;
         }
 
-        foreach ($transaksiProduks as $transaksiProduk) {
+        // Create 15 Piutang entries
+        for ($i = 0; $i < 15; $i++) {
+            $transaksiProduk = $transaksiProduks->random(); // Select a random TransaksiProduk
             $totalJual = 0;
             foreach ($transaksiProduk->transaksiProdukDetails as $detail) {
                 $totalJual += $detail->harga_jual * $detail->jumlah_keluar;
@@ -44,7 +46,7 @@ class PiutangSeeder extends Seeder
                 'status_pembayaran' => $statusPembayaran,
                 'sudah_dibayar' => $sudahDibayar,
                 'total_harga_modal' => $totalJual, // Renamed to total_harga_jual in migration, but model/seeder still uses total_harga_modal
-                'remarks' => 'Pembayaran piutang dari transaksi '.$transaksiProduk->no_invoice,
+                'remarks' => 'Pembayaran piutang dari transaksi ' . $transaksiProduk->no_invoice,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

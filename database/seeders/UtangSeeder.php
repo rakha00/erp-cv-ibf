@@ -22,7 +22,9 @@ class UtangSeeder extends Seeder
             return;
         }
 
-        foreach ($barangMasuks as $barangMasuk) {
+        // Create 15 Utang entries
+        for ($i = 0; $i < 15; $i++) {
+            $barangMasuk = $barangMasuks->random(); // Select a random BarangMasuk
             $totalModal = 0;
             foreach ($barangMasuk->barangMasukDetails as $detail) {
                 $totalModal += $detail->total_harga_modal;
@@ -44,7 +46,7 @@ class UtangSeeder extends Seeder
                 'status_pembayaran' => $statusPembayaran,
                 'sudah_dibayar' => $sudahDibayar,
                 'total_harga_modal' => $totalModal,
-                'remarks' => 'Pembayaran utang untuk barang masuk '.$barangMasuk->nomor_barang_masuk,
+                'remarks' => 'Pembayaran utang untuk barang masuk ' . $barangMasuk->nomor_barang_masuk,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

@@ -28,36 +28,33 @@ class BarangMasukSeeder extends Seeder
 
         $nomorBarangMasukCounter = 1;
 
-        foreach ($principleSubdealers as $principleSubdealer) {
-            // Create 2-3 BarangMasuk entries for each PrincipleSubdealer
-            $numberOfEntries = rand(2, 3);
-            for ($i = 0; $i < $numberOfEntries; $i++) {
-                $tanggal = Carbon::now()->subDays(rand(1, 30));
-                $barangMasuk = BarangMasuk::create([
-                    'principle_subdealer_id' => $principleSubdealer->id,
-                    'nomor_barang_masuk' => 'BM/'.$tanggal->format('Ymd').'-'.str_pad($nomorBarangMasukCounter++, 3, '0', STR_PAD_LEFT),
-                    'tanggal' => $tanggal,
-                    'remarks' => 'Pembelian rutin dari '.$principleSubdealer->nama,
+        for ($i = 0; $i < 50; $i++) {
+            $principleSubdealer = $principleSubdealers->random();
+            $tanggal = Carbon::create(2025, rand(1, 12), rand(1, 28));
+            $barangMasuk = BarangMasuk::create([
+                'principle_subdealer_id' => $principleSubdealer->id,
+                'nomor_barang_masuk' => 'BM/' . $tanggal->format('Ymd') . '-' . str_pad($nomorBarangMasukCounter++, 3, '0', STR_PAD_LEFT),
+                'tanggal' => $tanggal,
+                'remarks' => 'Pembelian rutin dari ' . $principleSubdealer->nama,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            // Attach 3-5 random UnitProduk to each BarangMasuk
+            $selectedUnitProduks = $unitProduks->random(rand(3, 5));
+            foreach ($selectedUnitProduks as $unitProduk) {
+                $jumlahBarang = rand(5, 20);
+                BarangMasukDetail::create([
+                    'barang_masuk_id' => $barangMasuk->id,
+                    'unit_produk_id' => $unitProduk->id,
+                    'nama_unit' => $unitProduk->nama_unit,
+                    'harga_modal' => $unitProduk->harga_modal,
+                    'jumlah_barang_masuk' => $jumlahBarang,
+                    'total_harga_modal' => $jumlahBarang * $unitProduk->harga_modal,
+                    'remarks' => 'Detail barang masuk untuk ' . $unitProduk->nama_unit,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
-
-                // Attach 3-5 random UnitProduk to each BarangMasuk
-                $selectedUnitProduks = $unitProduks->random(rand(3, 5));
-                foreach ($selectedUnitProduks as $unitProduk) {
-                    $jumlahBarang = rand(5, 20);
-                    BarangMasukDetail::create([
-                        'barang_masuk_id' => $barangMasuk->id,
-                        'unit_produk_id' => $unitProduk->id,
-                        'nama_unit' => $unitProduk->nama_unit,
-                        'harga_modal' => $unitProduk->harga_modal,
-                        'jumlah_barang_masuk' => $jumlahBarang,
-                        'total_harga_modal' => $jumlahBarang * $unitProduk->harga_modal,
-                        'remarks' => 'Detail barang masuk untuk '.$unitProduk->nama_unit,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
             }
         }
     }
