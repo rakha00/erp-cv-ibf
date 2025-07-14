@@ -36,11 +36,11 @@ class PiutangResource extends Resource
             ->schema([
                 Forms\Components\Select::make('transaksi_produk_id')
                     ->label('Transaksi Produk')
-                    ->options(TransaksiProduk::pluck('no_invoice', 'id'))
+                    ->options(fn(Get $get, ?Piutang $record): array => self::getTransaksiProdukOptions($get, $record))
                     ->searchable()
                     ->reactive()
                     ->required()
-                    ->afterStateUpdated(fn (Set $set, $state, ?Piutang $record) => self::updateTransaksiProdukDetails($set, $state, $record)),
+                    ->afterStateUpdated(fn(Set $set, $state, ?Piutang $record) => self::updateTransaksiProdukDetails($set, $state, $record)),
 
                 Forms\Components\TextInput::make('total_harga_modal')
                     ->label('Total Harga Modal')
@@ -48,7 +48,7 @@ class PiutangResource extends Resource
                     ->prefix('Rp ')
                     ->disabled()
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\TextInput::make('pembayaran_baru')
                     ->label('Pembayaran Baru')
@@ -57,9 +57,9 @@ class PiutangResource extends Resource
                     ->mask(RawJs::make('$money($input)'))
                     ->stripCharacters(',')
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
+                    ->afterStateUpdated(fn(Set $set, Get $get, $state, $record = null) => self::updatePembayaran($set, $get, $state, $record))
                     ->dehydrateStateUsing(function ($state) {
-                        if (! $state) {
+                        if (!$state) {
                             return null;
                         }
 
@@ -73,7 +73,7 @@ class PiutangResource extends Resource
                     ->dehydrated()
                     ->prefix('Rp')
                     ->stripCharacters(',')
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ',')),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ',')),
 
                 Forms\Components\DatePicker::make('jatuh_tempo')
                     ->label('Jatuh Tempo')
@@ -110,23 +110,48 @@ class PiutangResource extends Resource
         $set('pembayaran_baru', number_format($pembayaranBaru, 0, '.', ','));
     }
 
+    private static function getTransaksiProdukOptions(Get $get, ?Piutang $record = null): array
+    {
+        $selectedTransaksiId = $get('transaksi_produk_id') ?? $record?->transaksi_produk_id;
+
+        $transaksiProduks = TransaksiProduk::all();
+
+        if ($selectedTransaksiId) {
+            $selectedTransaksi = TransaksiProduk::withTrashed()->find($selectedTransaksiId);
+            if ($selectedTransaksi && $selectedTransaksi->trashed() && !$transaksiProduks->contains('id', $selectedTransaksiId)) {
+                $transaksiProduks->add($selectedTransaksi);
+            }
+        }
+
+        return $transaksiProduks->mapWithKeys(function ($transaksiProduk) {
+            $formattedDate = \Carbon\Carbon::parse($transaksiProduk->tanggal)->format('d-m-Y');
+            $label = sprintf('%s | %s', $transaksiProduk->no_invoice, $formattedDate);
+
+            if ($transaksiProduk->trashed()) {
+                $label .= ' (Dihapus)';
+            }
+
+            return [$transaksiProduk->id => $label];
+        })->all();
+    }
+
     private static function updateTransaksiProdukDetails(Set $set, $state, ?Piutang $record = null): void
     {
-        if (! $state) {
-            if (! $record) {
+        if (!$state) {
+            if (!$record) {
                 $set('total_harga_modal', '');
             }
 
             return;
         }
 
-        $transaksiProduk = TransaksiProduk::with(['transaksiProdukDetails'])->find($state);
+        $transaksiProduk = TransaksiProduk::withTrashed()->with(['transaksiProdukDetails'])->find($state);
 
-        if (! $transaksiProduk) {
+        if (!$transaksiProduk) {
             return;
         }
 
-        if (! $record) {
+        if (!$record) {
             $totalHargaJual = self::calculateTotalHargaJual($transaksiProduk);
             $set('total_harga_modal', number_format($totalHargaJual, 0, '.', ','));
         }
@@ -145,6 +170,9 @@ class PiutangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('transaksiProduk.no_invoice')
                     ->label('No. Transaksi')
+                    ->color(fn($record) => $record->transaksiProduk()->withTrashed()->first()?->trashed() ? 'danger' : null)
+                    ->icon(fn($record) => $record->transaksiProduk()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn($record) => $record->transaksiProduk()->withTrashed()->first()?->trashed() ? 'Data master Transaksi Produk ini telah dihapus' : null)
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('transaksiProduk.tanggal')
@@ -161,22 +189,46 @@ class PiutangResource extends Resource
                         'success' => 'sudah lunas',
                     ])
                     ->label('Status')
-                    ->formatStateUsing(fn ($state) => ucwords($state)),
+                    ->formatStateUsing(fn($state) => ucwords($state)),
                 Tables\Columns\TextColumn::make('sudah_dibayar')
                     ->numeric()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ','))
-                    ->sortable(),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
+                    ->sortable()
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Sum::make()
+                            ->label('Total Sudah Dibayar')
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('total_harga_modal')
                     ->label('Total Harga Modal')
                     ->prefix('Rp ')
                     ->numeric()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 0, '.', ','))
-                    ->sortable(),
+                    ->formatStateUsing(fn($state) => number_format((float) $state, 0, '.', ','))
+                    ->sortable()
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Sum::make()
+                            ->label('Total Harga Modal')
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('sisa_piutang')
                     ->label('Sisa Piutang')
                     ->prefix('Rp ')
-                    ->state(fn ($record): string => self::calculateSisaPiutang($record))
-                    ->sortable(),
+                    ->state(fn($record): string => self::calculateSisaPiutang($record))
+                    ->sortable()
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Sisa Piutang')
+                            ->using(function (\Illuminate\Database\Query\Builder $query): float {
+                                $totalHargaModalSum = $query->sum('total_harga_modal');
+                                $sudahDibayarSum = $query->sum('sudah_dibayar');
+
+                                return $totalHargaModalSum - $sudahDibayarSum;
+                            })
+                            ->prefix('Rp ')
+                            ->numeric(),
+                    ]),
                 Tables\Columns\TextColumn::make('remarks')
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
@@ -233,6 +285,12 @@ class PiutangResource extends Resource
         $sudahDibayar = (float) ($record->sudah_dibayar ?? '0');
 
         return number_format($totalPiutang - $sudahDibayar, 0, '.', ',');
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['transaksiProduk' => fn($query) => $query->withTrashed()]);
     }
 
     public static function getRelations(): array
