@@ -55,6 +55,24 @@ class AsetSeeder extends Seeder
             ],
         ];
 
+        // Add 2 more assets to reach 7 entries
+        $asets[] = [
+            'nama_aset' => 'Whiteboard',
+            'harga' => 500000,
+            'jumlah_aset' => 3,
+            'remarks' => 'Untuk kebutuhan rapat dan brainstorming.',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+        $asets[] = [
+            'nama_aset' => 'AC Split',
+            'harga' => 4500000,
+            'jumlah_aset' => 4,
+            'remarks' => 'Pendingin ruangan di setiap divisi.',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
         \App\Models\Aset::query()->insert($asets);
     }
 }

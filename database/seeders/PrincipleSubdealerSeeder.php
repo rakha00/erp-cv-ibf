@@ -15,7 +15,7 @@ class PrincipleSubdealerSeeder extends Seeder
         $now = now();
         $faker = \Faker\Factory::create('id_ID');
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 7; $i++) {
             PrincipleSubdealer::create([
                 'nama' => $faker->company,
                 'sales' => $faker->name,

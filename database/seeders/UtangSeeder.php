@@ -22,8 +22,8 @@ class UtangSeeder extends Seeder
             return;
         }
 
-        // Create 15 Utang entries
-        for ($i = 0; $i < 15; $i++) {
+        // Create 7 Utang entries
+        for ($i = 0; $i < 7; $i++) {
             $barangMasuk = $barangMasuks->random(); // Select a random BarangMasuk
             $totalModal = 0;
             foreach ($barangMasuk->barangMasukDetails as $detail) {

@@ -27,10 +27,12 @@ class BarangMasukSeeder extends Seeder
         }
 
         $nomorBarangMasukCounter = 1;
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->month;
 
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 7; $i++) {
             $principleSubdealer = $principleSubdealers->random();
-            $tanggal = Carbon::create(2025, rand(1, 12), rand(1, 28));
+            $tanggal = Carbon::create($currentYear, $currentMonth, rand(1, 28));
             $barangMasuk = BarangMasuk::create([
                 'principle_subdealer_id' => $principleSubdealer->id,
                 'nomor_barang_masuk' => 'BM/'.$tanggal->format('Ymd').'-'.str_pad($nomorBarangMasukCounter++, 3, '0', STR_PAD_LEFT),
@@ -40,10 +42,10 @@ class BarangMasukSeeder extends Seeder
                 'updated_at' => $now,
             ]);
 
-            // Attach 3-5 random UnitProduk to each BarangMasuk
-            $selectedUnitProduks = $unitProduks->random(rand(3, 5));
+            // Attach 1-3 random UnitProduk to each BarangMasuk
+            $selectedUnitProduks = $unitProduks->random(rand(1, 3));
             foreach ($selectedUnitProduks as $unitProduk) {
-                $jumlahBarang = rand(5, 20);
+                $jumlahBarang = rand(1, 5);
                 BarangMasukDetail::create([
                     'barang_masuk_id' => $barangMasuk->id,
                     'unit_produk_id' => $unitProduk->id,

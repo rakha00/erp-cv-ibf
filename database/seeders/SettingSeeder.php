@@ -25,10 +25,7 @@ class SettingSeeder extends Seeder
                     ['item' => 'Helper'],
                     ['item' => 'Gudang'],
                     ['item' => 'Manager Operasional'],
-                    ['item' => 'Staff Administrasi'],
-                    ['item' => 'Teknisi Lapangan'],
-                    ['item' => 'Staff Penjualan'],
-                    ['item' => 'Supir Pengiriman'],
+
                 ]),
                 'type' => 'array',
                 'description' => 'Options for Karyawan Jabatan field.',
@@ -41,7 +38,6 @@ class SettingSeeder extends Seeder
                 'value' => json_encode([
                     ['item' => 'Karyawan Tetap'],
                     ['item' => 'Karyawan Magang'],
-                    ['item' => 'Karyawan Freelance'],
                     ['item' => 'Karyawan Kontrak'],
                 ]),
                 'type' => 'array',

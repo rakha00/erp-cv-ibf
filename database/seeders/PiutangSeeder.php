@@ -22,8 +22,8 @@ class PiutangSeeder extends Seeder
             return;
         }
 
-        // Create 15 Piutang entries
-        for ($i = 0; $i < 15; $i++) {
+        // Create 7 Piutang entries
+        for ($i = 0; $i < 7; $i++) {
             $transaksiProduk = $transaksiProduks->random(); // Select a random TransaksiProduk
             $totalJual = 0;
             foreach ($transaksiProduk->transaksiProdukDetails as $detail) {

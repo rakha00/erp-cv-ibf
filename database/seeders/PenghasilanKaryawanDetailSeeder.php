@@ -25,9 +25,9 @@ class PenghasilanKaryawanDetailSeeder extends Seeder
 
         foreach ($karyawans as $karyawan) {
             // Create 2-3 income detail entries for each Karyawan
-            $numberOfEntries = rand(2, 3);
+            $numberOfEntries = 1; // Only one entry per employee
             for ($i = 0; $i < $numberOfEntries; $i++) {
-                $tanggal = Carbon::now()->subMonths(rand(0, 3))->startOfMonth(); // Data for last 3-4 months
+                $tanggal = Carbon::now()->startOfMonth(); // Only for the current month
                 $gajiPokok = $karyawan->gaji_pokok;
 
                 PenghasilanKaryawanDetail::create([

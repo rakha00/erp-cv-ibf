@@ -15,7 +15,7 @@ class KaryawanSeeder extends Seeder
         $now = now();
         $faker = \Faker\Factory::create('id_ID');
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 7; $i++) { // Limit to 7 entries
             Karyawan::create([
                 'nik' => $faker->unique()->numerify('##############'),
                 'nama' => $faker->name,
@@ -23,7 +23,7 @@ class KaryawanSeeder extends Seeder
                 'status' => $faker->randomElement(['Karyawan Tetap', 'Karyawan Kontrak']),
                 'no_hp' => $faker->phoneNumber,
                 'alamat' => $faker->address,
-                'gaji_pokok' => $faker->numberBetween(3000000, 10000000),
+                'gaji_pokok' => $faker->numberBetween(3000000, 5000000), // Adjusted salary range for better profit margin
                 'remarks' => $faker->sentence,
                 'created_at' => $now,
                 'updated_at' => $now,

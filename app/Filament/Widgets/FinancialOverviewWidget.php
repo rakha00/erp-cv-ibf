@@ -44,15 +44,16 @@ class FinancialOverviewWidget extends Widget implements HasForms
             ->schema([
                 Select::make('year')
                     ->options(function () {
-                        $currentYear = Carbon::now()->year;
-                        $years = range($currentYear, $currentYear + 5);
+                        $years = range(2025, 2030); // Limit years to 2025-2030
 
                         return array_combine($years, $years);
                     })
+                    ->default((int) Carbon::now()->year) // Set default to current year
                     ->live()
                     ->afterStateUpdated(function ($state) {
-                        $this->year = $state;
-                    }),
+                        $this->year = (int) $state;
+                    })
+                    ->selectablePlaceholder(false),
                 Select::make('month')
                     ->options([
                         1 => 'Januari',
@@ -68,23 +69,25 @@ class FinancialOverviewWidget extends Widget implements HasForms
                         11 => 'November',
                         12 => 'Desember',
                     ])
+                    ->default((int) Carbon::now()->month) // Set default to current month
                     ->live()
                     ->afterStateUpdated(function ($state) {
-                        $this->month = $state;
-                    }),
+                        $this->month = (int) $state;
+                    })
+                    ->selectablePlaceholder(false),
                 Select::make('salaryOverviewType')
                     ->label('Tipe Gaji Karyawan')
                     ->options([
                         'basic_salary' => 'Total Gaji Pokok',
                         'total_income' => 'Total Gaji + Penerimaan',
-                        'total_deductions' => 'Total Potongan',
                         'net_income' => 'Total Pendapatan Bersih',
                     ])
                     ->default('net_income')
                     ->live()
                     ->afterStateUpdated(function ($state) {
                         $this->salaryOverviewType = $state;
-                    }),
+                    })
+                    ->selectablePlaceholder(false),
             ]);
     }
 
@@ -97,17 +100,14 @@ class FinancialOverviewWidget extends Widget implements HasForms
 
     protected function getStatsOverview(): array
     {
-        $year = $this->year ?? Carbon::now()->year;
-        $month = $this->month ?? Carbon::now()->month;
+        $penghasilanKaryawanDetails = PenghasilanKaryawanDetail::whereYear('tanggal', $this->year)
+            ->whereMonth('tanggal', $this->month)
+            ->get();
 
         $totalGajiKaryawan = 0;
         $totalPenerimaan = 0;
         $totalPotongan = 0;
         $totalGajiPokok = Karyawan::sum('gaji_pokok');
-
-        $penghasilanKaryawanDetails = PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-            ->whereMonth('tanggal', $month)
-            ->get();
 
         foreach ($penghasilanKaryawanDetails as $detail) {
             $totalPenerimaan += $detail->bonus_target + $detail->uang_makan + $detail->tunjangan_transportasi + $detail->thr;
@@ -121,9 +121,6 @@ class FinancialOverviewWidget extends Widget implements HasForms
             case 'total_income':
                 $totalGajiKaryawan = $totalGajiPokok + $totalPenerimaan;
                 break;
-            case 'total_deductions':
-                $totalGajiKaryawan = $totalPotongan;
-                break;
             case 'net_income':
                 $totalGajiKaryawan = ($totalGajiPokok + $totalPenerimaan) - $totalPotongan;
                 break;
@@ -133,24 +130,18 @@ class FinancialOverviewWidget extends Widget implements HasForms
         }
 
         // Calculate Total Income from product sales
-        $totalIncome = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
-            $query->whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month);
+        $totalIncome = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) {
+            $query->whereYear('tanggal', $this->year)
+                ->whereMonth('tanggal', $this->month);
         })->sum('total_keuntungan');
 
         // Calculate Total Keuntungan Kantor (sudah dikurang total gaji karyawan)
         $totalKeuntunganKantor = $totalIncome - $totalGajiKaryawan;
 
-        // Calculate Total Transaksi Produk (with year and month filter)
-        $totalTransaksiProduk = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
-            $query->whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month);
-        })->sum(DB::raw('harga_jual * jumlah_keluar'));
-
         // Calculate Total Barang Masuk (with year and month filter)
-        $totalBarangMasuk = BarangMasukDetail::whereHas('barangMasuk', function ($query) use ($year, $month) {
-            $query->whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month);
+        $totalBarangMasuk = BarangMasukDetail::whereHas('barangMasuk', function ($query) {
+            $query->whereYear('tanggal', $this->year)
+                ->whereMonth('tanggal', $this->month);
         })->sum(DB::raw('harga_modal * jumlah_barang_masuk'));
 
         return [
@@ -174,7 +165,6 @@ class FinancialOverviewWidget extends Widget implements HasForms
         return match ($this->salaryOverviewType) {
             'basic_salary' => 'Total Gaji Pokok Karyawan',
             'total_income' => 'Total Gaji + Penerimaan Karyawan',
-            'total_deductions' => 'Total Potongan Karyawan',
             'net_income' => 'Total Pendapatan Bersih Karyawan',
             default => 'Total Pendapatan Bersih Karyawan', // Default label
         };

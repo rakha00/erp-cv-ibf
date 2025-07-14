@@ -27,8 +27,11 @@ class TransaksiProdukSeeder extends Seeder
         $noInvoiceCounter = 1;
         $noSuratJalanCounter = 1;
 
-        for ($i = 0; $i < 50; $i++) { // Create 50 transaction records
-            $tanggal = Carbon::create(2025, rand(1, 12), rand(1, 28));
+        $currentYear = Carbon::now()->year;
+        $currentMonth = Carbon::now()->month;
+
+        for ($i = 0; $i < 7; $i++) { // Create 7 transaction records
+            $tanggal = Carbon::create($currentYear, $currentMonth, rand(1, 28));
             $transaksi = TransaksiProduk::create([
                 'no_invoice' => 'INV/'.$tanggal->format('Ymd').'-'.str_pad($noInvoiceCounter++, 3, '0', STR_PAD_LEFT),
                 'no_surat_jalan' => 'SJ/'.$tanggal->format('Ymd').'-'.str_pad($noSuratJalanCounter++, 3, '0', STR_PAD_LEFT),
@@ -39,9 +42,9 @@ class TransaksiProdukSeeder extends Seeder
             ]);
 
             // Attach 2-4 random UnitProduk to each TransaksiProduk
-            $selectedUnitProduks = $unitProduks->random(rand(2, 4));
+            $selectedUnitProduks = $unitProduks->random(rand(1, 3)); // Reduce number of unique products
             foreach ($selectedUnitProduks as $product) {
-                $jumlahKeluar = rand(1, 5);
+                $jumlahKeluar = rand(1, 3); // Reduce quantity per product
                 $hargaJual = $product->harga_modal * (1 + (rand(10, 30) / 100)); // Mark up price by 10-30%
                 $keuntungan = ($hargaJual - $product->harga_modal) * $jumlahKeluar;
 
