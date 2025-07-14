@@ -30,6 +30,8 @@ class FinancialOverviewWidget extends Widget implements HasForms
 
     public ?int $month;
 
+    public ?string $salaryOverviewType = 'net_income'; // Default to net income
+
     public function mount(): void
     {
         $this->year = (int) Carbon::now()->year;
@@ -70,6 +72,19 @@ class FinancialOverviewWidget extends Widget implements HasForms
                     ->afterStateUpdated(function ($state) {
                         $this->month = $state;
                     }),
+                Select::make('salaryOverviewType')
+                    ->label('Tipe Gaji Karyawan')
+                    ->options([
+                        'basic_salary' => 'Total Gaji Pokok',
+                        'total_income' => 'Total Gaji + Penerimaan',
+                        'total_deductions' => 'Total Potongan',
+                        'net_income' => 'Total Pendapatan Bersih',
+                    ])
+                    ->default('net_income')
+                    ->live()
+                    ->afterStateUpdated(function ($state) {
+                        $this->salaryOverviewType = $state;
+                    }),
             ]);
     }
 
@@ -85,20 +100,37 @@ class FinancialOverviewWidget extends Widget implements HasForms
         $year = $this->year ?? Carbon::now()->year;
         $month = $this->month ?? Carbon::now()->month;
 
-        // Calculate Total Gaji Karyawan (sebelum dikurang kasbon)
-        $totalGajiKaryawan = Karyawan::sum('gaji_pokok') +
-            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month)
-                ->sum('bonus_target') +
-            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month)
-                ->sum('uang_makan') +
-            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month)
-                ->sum('tunjangan_transportasi') +
-            PenghasilanKaryawanDetail::whereYear('tanggal', $year)
-                ->whereMonth('tanggal', $month)
-                ->sum('thr');
+        $totalGajiKaryawan = 0;
+        $totalPenerimaan = 0;
+        $totalPotongan = 0;
+        $totalGajiPokok = Karyawan::sum('gaji_pokok');
+
+        $penghasilanKaryawanDetails = PenghasilanKaryawanDetail::whereYear('tanggal', $year)
+            ->whereMonth('tanggal', $month)
+            ->get();
+
+        foreach ($penghasilanKaryawanDetails as $detail) {
+            $totalPenerimaan += $detail->bonus_target + $detail->uang_makan + $detail->tunjangan_transportasi + $detail->thr;
+            $totalPotongan += $detail->keterlambatan + $detail->tanpa_keterangan + $detail->pinjaman;
+        }
+
+        switch ($this->salaryOverviewType) {
+            case 'basic_salary':
+                $totalGajiKaryawan = $totalGajiPokok;
+                break;
+            case 'total_income':
+                $totalGajiKaryawan = $totalGajiPokok + $totalPenerimaan;
+                break;
+            case 'total_deductions':
+                $totalGajiKaryawan = $totalPotongan;
+                break;
+            case 'net_income':
+                $totalGajiKaryawan = ($totalGajiPokok + $totalPenerimaan) - $totalPotongan;
+                break;
+            default:
+                $totalGajiKaryawan = ($totalGajiPokok + $totalPenerimaan) - $totalPotongan; // Default to net income
+                break;
+        }
 
         // Calculate Total Income from product sales
         $totalIncome = TransaksiProdukDetail::whereHas('transaksiProduk', function ($query) use ($year, $month) {
@@ -122,18 +154,29 @@ class FinancialOverviewWidget extends Widget implements HasForms
         })->sum(DB::raw('harga_modal * jumlah_barang_masuk'));
 
         return [
-            Stat::make('Total Keuntungan Kantor', 'Rp '.number_format($totalKeuntunganKantor, 0, ',', '.'))
+            Stat::make('Total Keuntungan Kantor', 'Rp ' . number_format($totalKeuntunganKantor, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color($totalKeuntunganKantor >= 0 ? 'success' : 'danger'),
-            Stat::make('Total Gaji Karyawan', 'Rp '.number_format($totalGajiKaryawan, 0, ',', '.'))
+            Stat::make($this->getSalaryLabel(), 'Rp ' . number_format($totalGajiKaryawan, 0, ',', '.'))
                 ->icon('heroicon-o-users')
                 ->color('info'),
-            Stat::make('Total Transaksi Produk', 'Rp '.number_format($totalTransaksiProduk, 0, ',', '.'))
+            Stat::make('Total Keuntungan Produk', 'Rp ' . number_format($totalIncome, 0, ',', '.'))
                 ->icon('heroicon-o-currency-dollar')
                 ->color('success'),
-            Stat::make('Total Barang Masuk', 'Rp '.number_format($totalBarangMasuk, 0, ',', '.'))
+            Stat::make('Total Barang Masuk', 'Rp ' . number_format($totalBarangMasuk, 0, ',', '.'))
                 ->icon('heroicon-o-archive-box')
                 ->color('info'),
         ];
+    }
+
+    protected function getSalaryLabel(): string
+    {
+        return match ($this->salaryOverviewType) {
+            'basic_salary' => 'Total Gaji Pokok Karyawan',
+            'total_income' => 'Total Gaji + Penerimaan Karyawan',
+            'total_deductions' => 'Total Potongan Karyawan',
+            'net_income' => 'Total Pendapatan Bersih Karyawan',
+            default => 'Total Pendapatan Bersih Karyawan', // Default label
+        };
     }
 }

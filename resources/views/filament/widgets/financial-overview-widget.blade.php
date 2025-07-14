@@ -1,9 +1,8 @@
 <x-filament-widgets::widget>
 	<x-filament::section>
-
-		<div style="position: relative;">
-			<form wire:submit.prevent="updateStats"
-				style="position: absolute; right: 16px; display: flex; gap: 8px; align-items: center;">
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+			<h3 class="text-3xl font-semibold text-gray-900 dark:text-white">Financial Overview</h3>
+			<form wire:submit.prevent="updateStats" style="display: flex; gap: 8px; align-items: center;">
 				<div style="display: flex; flex-wrap: nowrap; gap: 8px;">
 					<div style="width: 100px; font-size: 14px;">
 						{{ $this->form->getComponent('year') }}
@@ -11,11 +10,14 @@
 					<div style="width: 100px; font-size: 14px;">
 						{{ $this->form->getComponent('month') }}
 					</div>
+					<div style="width: 180px; font-size: 14px;">
+						{{ $this->form->getComponent('salaryOverviewType') }}
+					</div>
 				</div>
 			</form>
 		</div>
 
-		<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 80px;">
+		<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;">
 			@foreach ($stats as $stat)
 				<div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800" style="width: 100%;">
 					<div class="flex items-center text-gray-500 dark:text-gray-400">
