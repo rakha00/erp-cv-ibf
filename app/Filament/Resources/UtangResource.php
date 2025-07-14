@@ -22,12 +22,6 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class UtangResource extends Resource
 {
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->with(['barangMasuk' => fn($query) => $query->withTrashed()->with('principleSubdealer')]);
-    }
-
     protected static ?string $model = Utang::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
@@ -319,6 +313,12 @@ class UtangResource extends Resource
         $sudahDibayar = (float) $record->sudah_dibayar;
 
         return $totalHutang - $sudahDibayar;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['barangMasuk' => fn($query) => $query->withTrashed()->with('principleSubdealer')]);
     }
 
     public static function getRelations(): array
