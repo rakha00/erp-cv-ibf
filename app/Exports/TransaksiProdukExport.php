@@ -8,9 +8,8 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Illuminate\Database\Eloquent\Builder;
 
-class TransaksiProdukExport extends BaseExport implements FromCollection, WithHeadings, WithMapping, WithColumnFormatting
+class TransaksiProdukExport extends BaseExport implements FromCollection, WithColumnFormatting, WithHeadings, WithMapping
 {
     protected $query;
 
@@ -52,9 +51,6 @@ class TransaksiProdukExport extends BaseExport implements FromCollection, WithHe
         ];
     }
 
-    /**
-     * @return \Illuminate\Support\Collection
-     */
     public function collection(): \Illuminate\Support\Collection
     {
         $this->totalHargaJualMainAccumulated = 0;
@@ -64,7 +60,7 @@ class TransaksiProdukExport extends BaseExport implements FromCollection, WithHe
         $transaksiProduks = $this->query->with([
             'transaksiProdukDetails.unitProduk' => function ($query) {
                 $query->withTrashed();
-            }
+            },
         ])->get();
 
         if ($this->includeDetails) {
@@ -76,9 +72,6 @@ class TransaksiProdukExport extends BaseExport implements FromCollection, WithHe
 
     /**
      * Calculates total sales price and profit for a given TransaksiProduk.
-     *
-     * @param TransaksiProduk $transaksiProduk
-     * @return array
      */
     protected function calculateTransaksiProdukTotals(TransaksiProduk $transaksiProduk): array
     {

@@ -175,6 +175,9 @@ class UtangResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('barangMasuk.nomor_barang_masuk')
                     ->label('No. Barang Masuk')
+                    ->color(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'danger' : null)
+                    ->icon(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'heroicon-s-trash' : null)
+                    ->tooltip(fn ($record) => $record->barangMasuk()->withTrashed()->first()?->trashed() ? 'Data master Barang Masuk ini telah dihapus' : null)
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('barangMasuk.tanggal')
@@ -252,6 +255,7 @@ class UtangResource extends Resource
                     ->relationship('barangMasuk.principleSubdealer', 'nama')
                     ->label('Principle/Subdealer'),
             ])
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['barangMasuk' => fn ($query) => $query->withTrashed()]))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])

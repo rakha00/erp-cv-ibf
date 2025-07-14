@@ -45,6 +45,7 @@ class UtangList extends BaseWidget
                     'warning' => 'tercicil',
                     'success' => 'lunas',
                 ])
+                ->formatStateUsing(fn ($state) => ucwords($state))
                 ->sortable(),
         ];
     }
